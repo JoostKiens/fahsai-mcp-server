@@ -2,6 +2,8 @@
 
 Copy-paste-and-reformat of the relevant sections of `fahsai`'s own `docs/claude/architecture.md`, as verified 2026-07-25 against the live repo. **Treat this as a starting point, not ground truth** — verify against the live API (`npm run test:live`) before shipping a param name or response-shape assumption pulled from here. If this doc turns out wrong, fix it in place with a note on what was verified and when.
 
+**Base URL correction (verified 2026-07-25, JOO-25)**: the actual API is deployed on Railway at `https://api-server-service-production.up.railway.app` — every route below is relative to that host, not `fahsai.fyi` (the frontend domain returns a platform 404 for all of them; it doesn't proxy the API). Also verified live: responses are JSON; app-level errors are shaped `{"error": "<message>"}` (e.g. a missing `date` param on `/api/weather` is a `400` with `{"error":"date param required (YYYY-MM-DD)"}`, and a valid-but-not-yet-ingested date is a `404` with `{"error":"No weather data for this date. Run the ingest job."}`); an unmatched route hits the framework's own 404 handler instead, shaped `{"message": "...", "error": "Not Found", "statusCode": 404}`. No field is guaranteed present on every error body — `fahsai-client` extracts `message` then `error` then falls back to `statusText`.
+
 All routes return JSON. All accept a `bbox` query param where spatial filtering applies (format: `west,south,east,north`, default `89,1,114,30` — covers Thailand, Myanmar, Laos, Cambodia, and partial Vietnam/India/China/Bangladesh). This server's `place-resolver` converts a `place` string to this same format before calling.
 
 ## Routes this server wraps
