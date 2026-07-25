@@ -1,0 +1,38 @@
+{
+  "name": "fahsai-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing Fahsai's public fire, air quality, weather, and power plant data for Thailand, Myanmar, Laos, and Cambodia",
+  "type": "module",
+  "bin": {
+    "fahsai-mcp-server": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JoostKiens/fahsai-mcp-server.git"
+  },
+  "license": "MIT",
+  "author": "Joost Kiens",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.0",
+    "vitest": "^4.1.10"
+  }
+}
