@@ -1,0 +1,33 @@
+/.idea
+/.vscode
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+out/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.code-workspace
+
+# Claude Code local-only settings
+.claude/settings.local.json
