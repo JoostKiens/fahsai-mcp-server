@@ -66,8 +66,9 @@ export function registerGetStationBaseline(server: McpServer, deps: StationBasel
     {
       title: "Get a station's historical PM2.5 baseline (climatology)",
       description:
-        "A station's calendar-day PM2.5 climatology (median/p25/p75 per day-of-year, aggregated across years) — " +
-        'use this to answer "is this normal for the time of year" questions. Requires a `station_id` from ' +
+        "A station's calendar-day PM2.5 climatology (median/p25/p75 per day-of-year, aggregated across years, each " +
+        'value with its own EPA AQI category) — use this to answer "is this normal for the time of year" ' +
+        'questions. Requires a `station_id` from ' +
         '`get_stations` or `get_station_readings` — a place name is not valid input here. By default returns the ' +
         "current season's min/median/max plus today's specific day-of-year stats; pass `month`+`day` together for " +
         'a specific day instead, or `full: true` for the entire 365-day curve (large — only ask for this if you ' +

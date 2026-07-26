@@ -67,7 +67,18 @@ describe('createGetStationBaselineHandler', () => {
     const result = await handler({ station_id: '225572', full: false, month: 7, day: 27 });
 
     const structured = result.structuredContent as { day?: { month: number; day: number; thin: boolean } };
-    expect(structured.day).toEqual({ month: 7, day: 27, medianPm25: 15.3, p25Pm25: 30.4, p75Pm25: 41.1, n: 3, thin: true });
+    expect(structured.day).toEqual({
+      month: 7,
+      day: 27,
+      medianPm25: 15.3,
+      medianAqiCategory: 'Moderate',
+      p25Pm25: 30.4,
+      p25AqiCategory: 'Moderate',
+      p75Pm25: 41.1,
+      p75AqiCategory: 'Unhealthy for Sensitive Groups',
+      n: 3,
+      thin: true,
+    });
   });
 
   it('returns the full curve and notes ignored month/day when full wins', async () => {

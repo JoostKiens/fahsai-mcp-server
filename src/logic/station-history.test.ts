@@ -4,8 +4,10 @@ import {
   BOGUS_STATION_ID_HISTORY,
   EMPTY_STATION_HISTORY,
   NORMAL_STATION_HISTORY,
+  STATION_HISTORY_WITH_INVALID_WIND_DIRECTION,
   STATION_HISTORY_WITH_NO_DATA_DAY,
   STATION_HISTORY_WITH_NULL_FIELDS,
+  STATION_HISTORY_WITH_UNDEFINED_FIELDS,
 } from './station-history.fixtures.js';
 import { emptyStationHistorySummary, summarizeStationHistory } from './station-history.js';
 
@@ -37,9 +39,44 @@ describe('summarizeStationHistory', () => {
         relativeHumidity2m: 44,
         wind: { fromLabel: 'NW', toLabel: 'SE', fromQuadrant: 'NW', toQuadrant: 'SE' },
       },
-      baseline: { medianPm25: 16, p25Pm25: 13.9, p75Pm25: 20.3, n: 63 },
+      baseline: {
+        medianPm25: 16,
+        medianAqiCategory: 'Moderate',
+        p25Pm25: 13.9,
+        p25AqiCategory: 'Moderate',
+        p75Pm25: 20.3,
+        p75AqiCategory: 'Moderate',
+        n: 63,
+      },
     });
     expect(JSON.stringify(first)).not.toContain('windDirectionDeg');
+  });
+
+  it('never returns a PM2.5 value (top-level or baseline) without an aqiCategory', () => {
+    const summary = summarizeStationHistory(NORMAL_STATION_HISTORY, '225572', 7);
+
+    for (const day of summary.days) {
+      if (day.pm25 !== null) expect(day.aqiCategory).not.toBeNull();
+      if (day.baseline !== null) {
+        expect(day.baseline.medianAqiCategory).not.toBeNull();
+        expect(day.baseline.p25AqiCategory).not.toBeNull();
+        expect(day.baseline.p75AqiCategory).not.toBeNull();
+      }
+    }
+  });
+
+  it('treats missing (undefined) weather/baseline keys the same as explicit null, without throwing', () => {
+    const summary = summarizeStationHistory(STATION_HISTORY_WITH_UNDEFINED_FIELDS, '225572', 7);
+
+    expect(summary.days[0].weather).toBeNull();
+    expect(summary.days[0].baseline).toBeNull();
+  });
+
+  it('falls back to a null wind instead of throwing for a non-finite windDirectionDeg', () => {
+    const summary = summarizeStationHistory(STATION_HISTORY_WITH_INVALID_WIND_DIRECTION, '225572', 7);
+
+    expect(summary.days[0].weather?.wind).toBeNull();
+    expect(summary.days[0].weather?.windSpeedKmh).toBe(5.5);
   });
 
   it('nulls pm25/aqiCategory for a readingCount:0 sentinel day instead of classifying pm25:0', () => {

@@ -52,3 +52,29 @@ export const BOGUS_STATION_ID_HISTORY: readonly StationHistoryDayRaw[] = Array.f
       baseline: null,
     }),
 );
+
+// fahsai-client casts parsed JSON straight to T with no runtime check — a response that omits
+// `weather`/`baseline` entirely (rather than sending an explicit null) is a real possibility,
+// not just a hypothetical. Cast through `unknown` since this shape is deliberately invalid
+// against StationHistoryDayRaw's typed contract.
+export const STATION_HISTORY_WITH_UNDEFINED_FIELDS: readonly StationHistoryDayRaw[] = [
+  fakeStationHistoryDay({
+    date: '2026-07-26',
+    weather: undefined as unknown as StationHistoryDayRaw['weather'],
+    baseline: undefined as unknown as StationHistoryDayRaw['baseline'],
+  }),
+];
+
+// A non-finite windDirectionDeg inside an otherwise-present weather object — malformed upstream
+// data, not something the live API has been observed to send, but not runtime-validated either.
+export const STATION_HISTORY_WITH_INVALID_WIND_DIRECTION: readonly StationHistoryDayRaw[] = [
+  fakeStationHistoryDay({
+    date: '2026-07-26',
+    weather: {
+      windSpeedKmh: 5.5,
+      windDirectionDeg: NaN,
+      precipitationSumMm: 24.6,
+      relativeHumidity2m: 44,
+    },
+  }),
+];

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import type { FahsaiClient } from '../fahsai-client/client.js';
 import { classifyAqiOrNull, type AqiCategory } from './aqi.js';
-import { parseWindDir, type WindDir } from './wind.js';
+import { parseWindDirOrNull, type WindDir } from './wind.js';
 
 // Matches the live API's own cap on /api/stations/:id/history — verified 2026-07-26 (JOO-32):
 // days>30 is a 400 ("days cannot exceed 30"). Default (no `days` param) is 7.
@@ -52,13 +52,25 @@ export interface StationHistoryWeather {
   readonly wind: WindDir | null;
 }
 
+// CLAUDE.md's non-negotiable constraint applies to every PM2.5 value, including the per-day
+// baseline stats embedded here — median/p25/p75 each get their own category, not just medianPm25.
+export interface StationHistoryBaseline {
+  readonly medianPm25: number;
+  readonly medianAqiCategory: AqiCategory | null;
+  readonly p25Pm25: number;
+  readonly p25AqiCategory: AqiCategory | null;
+  readonly p75Pm25: number;
+  readonly p75AqiCategory: AqiCategory | null;
+  readonly n: number;
+}
+
 export interface StationHistoryDay {
   readonly date: string;
   readonly pm25: number | null;
   readonly aqiCategory: AqiCategory | null;
   readonly readingCount: number;
   readonly weather: StationHistoryWeather | null;
-  readonly baseline: StationHistoryBaselineRaw | null;
+  readonly baseline: StationHistoryBaseline | null;
 }
 
 export interface StationHistorySummary {
@@ -73,7 +85,21 @@ function toStationHistoryWeather(raw: StationHistoryWeatherRaw): StationHistoryW
     windSpeedKmh: raw.windSpeedKmh,
     precipitationSumMm: raw.precipitationSumMm,
     relativeHumidity2m: raw.relativeHumidity2m,
-    wind: raw.windDirectionDeg !== null ? parseWindDir(raw.windDirectionDeg) : null,
+    // parseWindDirOrNull, not parseWindDir directly — a non-finite windDirectionDeg from an
+    // unvalidated JSON body would otherwise throw and abort the whole get_station_history call.
+    wind: raw.windDirectionDeg !== null ? parseWindDirOrNull(raw.windDirectionDeg) : null,
+  };
+}
+
+function toStationHistoryBaseline(raw: StationHistoryBaselineRaw): StationHistoryBaseline {
+  return {
+    medianPm25: raw.medianPm25,
+    medianAqiCategory: classifyAqiOrNull(raw.medianPm25)?.category ?? null,
+    p25Pm25: raw.p25Pm25,
+    p25AqiCategory: classifyAqiOrNull(raw.p25Pm25)?.category ?? null,
+    p75Pm25: raw.p75Pm25,
+    p75AqiCategory: classifyAqiOrNull(raw.p75Pm25)?.category ?? null,
+    n: raw.n,
   };
 }
 
@@ -86,8 +112,13 @@ function toStationHistoryDay(raw: StationHistoryDayRaw): StationHistoryDay {
     pm25: aqi?.pm25 ?? null,
     aqiCategory: aqi?.category ?? null,
     readingCount: raw.readingCount,
-    weather: raw.weather !== null ? toStationHistoryWeather(raw.weather) : null,
-    baseline: raw.baseline,
+    // Guarded against `undefined`, not just `null` — fahsai-client casts parsed JSON straight to
+    // T with no runtime check, so a response that omits the key entirely (rather than sending an
+    // explicit null) is a real possibility, and `!== null` alone would let `undefined` through to
+    // toStationHistoryWeather/toStationHistoryBaseline and throw inside this function's caller (.map).
+    weather: raw.weather !== null && raw.weather !== undefined ? toStationHistoryWeather(raw.weather) : null,
+    baseline:
+      raw.baseline !== null && raw.baseline !== undefined ? toStationHistoryBaseline(raw.baseline) : null,
   };
 }
 
@@ -125,8 +156,11 @@ const stationHistoryWeatherOutputSchema = z.object({
 
 const stationHistoryBaselineOutputSchema = z.object({
   medianPm25: z.number(),
+  medianAqiCategory: z.string().nullable(),
   p25Pm25: z.number(),
+  p25AqiCategory: z.string().nullable(),
   p75Pm25: z.number(),
+  p75AqiCategory: z.string().nullable(),
   n: z.number(),
 });
 

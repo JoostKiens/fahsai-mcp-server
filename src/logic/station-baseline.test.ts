@@ -50,15 +50,21 @@ describe('summarizeStationBaselineDefault', () => {
       season: 'monsoon',
       daysCovered: 2,
       minMedianPm25: 15.3,
+      minMedianAqiCategory: 'Moderate',
       medianOfMedianPm25: 15.65,
+      medianOfMedianAqiCategory: 'Moderate',
       maxMedianPm25: 16,
+      maxMedianAqiCategory: 'Moderate',
     });
     expect(summary.today).toEqual({
       month: 7,
       day: 26,
       medianPm25: 16,
+      medianAqiCategory: 'Moderate',
       p25Pm25: 13.9,
+      p25AqiCategory: 'Moderate',
       p75Pm25: 20.3,
+      p75AqiCategory: 'Moderate',
       n: 63,
       thin: false,
     });
@@ -87,8 +93,11 @@ describe('summarizeStationBaselineDay', () => {
       month: 7,
       day: 27,
       medianPm25: 15.3,
+      medianAqiCategory: 'Moderate',
       p25Pm25: 30.4,
+      p25AqiCategory: 'Moderate',
       p75Pm25: 41.1,
+      p75AqiCategory: 'Unhealthy for Sensitive Groups',
       n: 3,
       thin: true,
     });
@@ -120,5 +129,15 @@ describe('summarizeStationBaselineFull', () => {
 
     expect(summary.rows).toEqual([]);
     expect(summary.note).toContain('No baseline data for station 999999999');
+  });
+
+  it('never returns a bare PM2.5 number without an aqiCategory', () => {
+    const summary = summarizeStationBaselineFull(NORMAL_STATION_BASELINE_FULL, 2021, 2026, '225572');
+
+    for (const row of summary.rows ?? []) {
+      expect(row.medianAqiCategory).not.toBeNull();
+      expect(row.p25AqiCategory).not.toBeNull();
+      expect(row.p75AqiCategory).not.toBeNull();
+    }
   });
 });

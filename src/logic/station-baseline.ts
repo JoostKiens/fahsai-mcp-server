@@ -2,6 +2,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
 import type { FahsaiClient } from '../fahsai-client/client.js';
+import { classifyAqiOrNull, type AqiCategory } from './aqi.js';
 
 // Fahsai frontend's season convention, keyed off UTC month — kept in sync manually since this
 // server has no shared package with the frontend.
@@ -47,12 +48,17 @@ export interface StationBaselineApiResponse {
   readonly maxYear: number | null;
 }
 
+// CLAUDE.md's non-negotiable constraint applies to every PM2.5 value — median/p25/p75 each get
+// their own category, not just medianPm25.
 export interface StationBaselineDayResult {
   readonly month: number;
   readonly day: number;
   readonly medianPm25: number;
+  readonly medianAqiCategory: AqiCategory | null;
   readonly p25Pm25: number;
+  readonly p25AqiCategory: AqiCategory | null;
   readonly p75Pm25: number;
+  readonly p75AqiCategory: AqiCategory | null;
   readonly n: number;
   readonly thin: boolean;
 }
@@ -61,8 +67,11 @@ export interface SeasonAggregate {
   readonly season: Season;
   readonly daysCovered: number;
   readonly minMedianPm25: number;
+  readonly minMedianAqiCategory: AqiCategory | null;
   readonly medianOfMedianPm25: number;
+  readonly medianOfMedianAqiCategory: AqiCategory | null;
   readonly maxMedianPm25: number;
+  readonly maxMedianAqiCategory: AqiCategory | null;
 }
 
 export interface StationBaselineSummary {
@@ -83,7 +92,18 @@ function median(values: readonly number[]): number {
 }
 
 function toDayResult(raw: StationBaselineDayRaw): StationBaselineDayResult {
-  return { ...raw, thin: raw.n < BASELINE_THIN_THRESHOLD };
+  return {
+    month: raw.month,
+    day: raw.day,
+    medianPm25: raw.medianPm25,
+    medianAqiCategory: classifyAqiOrNull(raw.medianPm25)?.category ?? null,
+    p25Pm25: raw.p25Pm25,
+    p25AqiCategory: classifyAqiOrNull(raw.p25Pm25)?.category ?? null,
+    p75Pm25: raw.p75Pm25,
+    p75AqiCategory: classifyAqiOrNull(raw.p75Pm25)?.category ?? null,
+    n: raw.n,
+    thin: raw.n < BASELINE_THIN_THRESHOLD,
+  };
 }
 
 function findDay(
@@ -102,6 +122,17 @@ function noDayNote(month: number, day: number): string {
   return `No baseline row for ${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}.`;
 }
 
+// Shared by all three summarizer modes below — a bad/empty station_id looks identical (empty
+// `data`) regardless of which mode was requested, so this is the one place that decides what
+// that looks like in the response.
+function emptyBaselineSummary(
+  stationId: string,
+  minYear: number | null,
+  maxYear: number | null,
+): StationBaselineSummary {
+  return { stationId, minYear, maxYear, note: noDataNote(stationId) };
+}
+
 export function summarizeStationBaselineDefault(
   data: readonly StationBaselineDayRaw[],
   minYear: number | null,
@@ -110,7 +141,7 @@ export function summarizeStationBaselineDefault(
   today: Date = new Date(),
 ): StationBaselineSummary {
   if (data.length === 0) {
-    return { stationId, minYear, maxYear, note: noDataNote(stationId) };
+    return emptyBaselineSummary(stationId, minYear, maxYear);
   }
 
   const todayMonth = today.getUTCMonth() + 1;
@@ -119,16 +150,22 @@ export function summarizeStationBaselineDefault(
   const seasonRows = data.filter((row) => SEASON_MONTHS[season].includes(row.month));
   const seasonMedians = seasonRows.map((row) => row.medianPm25);
 
-  const seasonAggregate: SeasonAggregate | undefined =
-    seasonMedians.length > 0
-      ? {
-          season,
-          daysCovered: seasonRows.length,
-          minMedianPm25: Math.min(...seasonMedians),
-          medianOfMedianPm25: median(seasonMedians),
-          maxMedianPm25: Math.max(...seasonMedians),
-        }
-      : undefined;
+  let seasonAggregate: SeasonAggregate | undefined;
+  if (seasonMedians.length > 0) {
+    const minMedianPm25 = Math.min(...seasonMedians);
+    const medianOfMedianPm25 = median(seasonMedians);
+    const maxMedianPm25 = Math.max(...seasonMedians);
+    seasonAggregate = {
+      season,
+      daysCovered: seasonRows.length,
+      minMedianPm25,
+      minMedianAqiCategory: classifyAqiOrNull(minMedianPm25)?.category ?? null,
+      medianOfMedianPm25,
+      medianOfMedianAqiCategory: classifyAqiOrNull(medianOfMedianPm25)?.category ?? null,
+      maxMedianPm25,
+      maxMedianAqiCategory: classifyAqiOrNull(maxMedianPm25)?.category ?? null,
+    };
+  }
 
   const todayRow = findDay(data, todayMonth, todayDay);
 
@@ -151,7 +188,7 @@ export function summarizeStationBaselineDay(
   day: number,
 ): StationBaselineSummary {
   if (data.length === 0) {
-    return { stationId, minYear, maxYear, note: noDataNote(stationId) };
+    return emptyBaselineSummary(stationId, minYear, maxYear);
   }
 
   const row = findDay(data, month, day);
@@ -171,7 +208,7 @@ export function summarizeStationBaselineFull(
   stationId: string,
 ): StationBaselineSummary {
   if (data.length === 0) {
-    return { stationId, minYear, maxYear, rows: [], note: noDataNote(stationId) };
+    return { ...emptyBaselineSummary(stationId, minYear, maxYear), rows: [] };
   }
 
   return { stationId, minYear, maxYear, rows: data.map(toDayResult) };
@@ -181,8 +218,11 @@ const stationBaselineDayResultOutputSchema = z.object({
   month: z.number(),
   day: z.number(),
   medianPm25: z.number(),
+  medianAqiCategory: z.string().nullable(),
   p25Pm25: z.number(),
+  p25AqiCategory: z.string().nullable(),
   p75Pm25: z.number(),
+  p75AqiCategory: z.string().nullable(),
   n: z.number(),
   thin: z.boolean(),
 });
@@ -196,8 +236,11 @@ export const stationBaselineOutputSchema = z.object({
       season: z.enum(['peak_burning', 'early_dry', 'monsoon']),
       daysCovered: z.number(),
       minMedianPm25: z.number(),
+      minMedianAqiCategory: z.string().nullable(),
       medianOfMedianPm25: z.number(),
+      medianOfMedianAqiCategory: z.string().nullable(),
       maxMedianPm25: z.number(),
+      maxMedianAqiCategory: z.string().nullable(),
     })
     .optional(),
   today: stationBaselineDayResultOutputSchema.optional(),

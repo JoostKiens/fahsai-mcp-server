@@ -52,15 +52,19 @@ describe('createGetStationHistoryHandler', () => {
     expect(get).toHaveBeenCalledWith('/api/stations/225572/history', { days: 3, date: '2026-06-01' });
   });
 
-  it('treats a malformed success body (days not an array) as empty instead of throwing', async () => {
+  it('treats a malformed success body (days not an array) as empty instead of throwing, with a note', async () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { stationId: '225572', days: null } });
     const handler = createGetStationHistoryHandler({ client: fakeClient(get) });
 
     const result = await handler({ station_id: '225572', days: 7 });
 
     expect(result.isError).toBeUndefined();
-    const structured = result.structuredContent as { days: unknown[] };
+    const structured = result.structuredContent as { days: unknown[]; note?: string };
     expect(structured.days).toEqual([]);
+    expect(structured.note).toBe(
+      'No day rows returned for station 225572 — the response may be malformed, or the ' +
+        'station_id may be invalid (see get_stations).',
+    );
   });
 
   it('returns isError for a non-404 Fahsai error', async () => {
