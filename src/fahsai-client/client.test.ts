@@ -126,4 +126,39 @@ describe('createFahsaiClient', () => {
     expect(result.error.kind).toBe('server-error');
     expect(result.error.message).toContain('could not be parsed');
   });
+
+  it('falls back to the error field when message is an empty string', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      text: () => Promise.resolve(JSON.stringify({ message: '', error: 'Not Found' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = createFahsaiClient();
+    const result = await client.get('/api/does-not-exist');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected not-found result');
+    }
+    expect(result.error.message).toBe('Not Found');
+  });
+
+  it('passes an abort signal so a hung request does not block forever', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.resolve({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = createFahsaiClient();
+    await client.get('/api/fires');
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
 });

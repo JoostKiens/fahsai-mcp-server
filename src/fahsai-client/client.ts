@@ -17,6 +17,8 @@ export interface FahsaiClient {
 // moves hosts again, this is the one place to update.
 export const BASE_URL = 'https://api-server-service-production.up.railway.app';
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 function buildUrl(baseUrl: string, path: string, params?: FahsaiQueryParams): string {
   const url = new URL(path, baseUrl);
   if (params) {
@@ -37,10 +39,10 @@ function extractMessage(bodyText: string, statusText: string): string {
     const parsed = JSON.parse(bodyText) as unknown;
     if (parsed && typeof parsed === 'object') {
       const obj = parsed as Record<string, unknown>;
-      if (typeof obj.message === 'string') {
+      if (typeof obj.message === 'string' && obj.message !== '') {
         return obj.message;
       }
-      if (typeof obj.error === 'string') {
+      if (typeof obj.error === 'string' && obj.error !== '') {
         return obj.error;
       }
     }
@@ -70,7 +72,10 @@ export function createFahsaiClient(): FahsaiClient {
 
     let response: Response;
     try {
-      response = await fetch(url, { headers: { Accept: 'application/json' } });
+      response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown fetch error';
       return { ok: false, error: { kind: 'network', message: `Request to Fahsai API failed: ${message}` } };
