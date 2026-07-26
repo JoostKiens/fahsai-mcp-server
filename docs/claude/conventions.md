@@ -74,7 +74,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | Scope            | Covers                                                                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `scaffolding`    | Project skeleton, transports (STDIO/HTTP), build/tooling config, env setup                                       |
-| `gfw-client`     | GFW API HTTP client, auth, error typing, rate-limit handling                                                     |
+| `client`     | FahSai API HTTP client, auth, error typing, rate-limit handling                                                     |
 | `cache`          | `Cache<K,V>`, the 4Wings report queue and 524 recovery                                                           |
 | `reference-data` | Gear types, vessel types                                                                                         |
 | `tools`          | Any MCP tool logic (`src/tools/*`) — use a sub-scope like `tools/find-vessels` if a commit touches only one tool |

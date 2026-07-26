@@ -12,7 +12,7 @@ This matters for every decision below: we are not building a multi-tenant distri
 src/
   index.ts               # STDIO entrypoint
   tools/                   # one file per MCP tool — thin: schema + orchestration only
-  fahsai-client/            # HTTP client for the public fahsai.fyi API (fetch wrapper, error typing)
+  fahsai-client/            # HTTP client for Fahsai's public REST API (fetch wrapper, error typing)
   place-resolver/            # Nominatim geocoding + place→bbox conversion, with in-process cache
   logic/                       # shared pure functions: aqi.ts, wind.ts
   schemas/                      # shared Zod fragments (locationInput, etc.)

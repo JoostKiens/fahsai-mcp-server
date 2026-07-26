@@ -23,7 +23,7 @@ Read the doc that matches what you're touching:
 
 We follow the [MCP best practices guide](https://modelcontextprotocol.info/docs/best-practices/), **adapted for a single-process, single-user local/npx tool**, same posture as this author's other MCP server (`gfw-mcp-server`). `architecture.md` has an explicit adopt/adapt/skip table — don't add production-service patterns "for best practice" without checking that table first.
 
-`fahsai-api-docs.md` is a copy-paste of `fahsai`'s own `docs/claude/architecture.md`, reformatted for internal reference — **treat it as a starting point, not ground truth.** Before shipping a param name or response-shape assumption pulled from this file, verify it against the live API (`npm run test:live` once tools exist, or a throwaway script against `https://fahsai.fyi`). If you find the doc wrong, fix it in place with a note on what was verified and when — the next person to read it needs the correction too.
+`fahsai-api-docs.md` is a copy-paste of `fahsai`'s own `docs/claude/architecture.md`, reformatted for internal reference — **treat it as a starting point, not ground truth.** Before shipping a param name or response-shape assumption pulled from this file, verify it against the live API (`npm run test:live` once tools exist, or a throwaway script — see `fahsai-api-reference.md` for the current base URL, since `fahsai.fyi` is the frontend domain and does not proxy the API). If you find the doc wrong, fix it in place with a note on what was verified and when — the next person to read it needs the correction too.
 
 ## Non-negotiable constraints
 
@@ -44,9 +44,9 @@ npm run dev          # run with watch mode
 npm run start         # run compiled server (STDIO)
 npm run lint          # eslint
 npm run test           # unit tests (fixtures only, no network)
-npm run test:live       # live API smoke tests against fahsai.fyi (no auth required)
+npm run test:live       # live API smoke tests against the Fahsai backend (no auth required)
 ```
 
 ## Environment
 
-No API keys required — Fahsai's REST API and Nominatim are both public/unauthenticated. See `.env.example` for the (entirely optional) tuning values: `FAHSAI_API_BASE_URL` (default `https://fahsai.fyi`), place-resolver cache TTL, default geocoding radius.
+No API keys required — Fahsai's REST API and Nominatim are both public/unauthenticated. See `.env.example` for the (entirely optional) tuning values: place-resolver cache TTL, default geocoding radius. The Fahsai API's base URL (`https://api-server-service-production.up.railway.app` — Fahsai's backend is deployed on Railway; `fahsai.fyi` is the frontend domain and does not proxy the API) is a fixed constant in `src/fahsai-client/client.ts`, not an env var — it's an implementation detail, not a per-install preference.
