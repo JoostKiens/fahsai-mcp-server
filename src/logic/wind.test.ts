@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseWindDir } from './wind.js';
+import { parseWindDir, parseWindDirOrNull } from './wind.js';
 
 describe('parseWindDir', () => {
   it('handles cardinal directions', () => {
@@ -46,5 +46,17 @@ describe('parseWindDir', () => {
 
   it('throws RangeError for -Infinity', () => {
     expect(() => parseWindDir(-Infinity)).toThrow(RangeError);
+  });
+});
+
+describe('parseWindDirOrNull', () => {
+  it('returns the same result as parseWindDir for a valid value', () => {
+    expect(parseWindDirOrNull(90)).toEqual(parseWindDir(90));
+  });
+
+  it('returns null instead of throwing for NaN/Infinity', () => {
+    expect(parseWindDirOrNull(NaN)).toBeNull();
+    expect(parseWindDirOrNull(Infinity)).toBeNull();
+    expect(parseWindDirOrNull(-Infinity)).toBeNull();
   });
 });

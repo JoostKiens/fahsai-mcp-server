@@ -117,6 +117,16 @@ Vitest, matching `gfw-mcp-server`. Fixture data for unit tests lives alongside t
 
 No commitlint/husky setup is mandated for this repo the way `fahsai`'s monorepo has — this is a small single-package tool. If conventional commits end up useful, adopt them ad hoc; don't add tooling for it preemptively.
 
+**Branch names** follow the same `<type>(<scope>)` prefix as commit messages (see above), joined to Linear's own suggested branch slug for the issue (the `gitBranchName` field on the issue) with a `/`:
+
+```
+<type>(<scope>)/<linear-branch-slug>
+```
+
+Example: `feat(tools)/joo-32-tools-get_station_history-daily-rollup-get_station_baseline`.
+
+Some branches merged before this was written used a `worktree-<linear-branch-slug>` prefix instead (an artifact of the worktree tooling used at the time, not a deliberate convention) — don't copy that pattern for new work, use the template above.
+
 ## Pull requests
 
 **Title** follows the same `<type>(<scope>): <description>` shape as commit messages, with the Linear ticket id inserted right after the colon when one exists:
