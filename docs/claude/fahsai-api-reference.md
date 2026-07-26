@@ -26,14 +26,17 @@ GET /api/station-readings/history?station_id=...&parameter=pm25&hours=24
   (enforce client-side; the API itself 400s above that).
   → get_station_readings_history
 
-GET /api/stations/:stationId/history?days=5&date=YYYY-MM-DD
-  Daily rollup: { date, meanPm25, readingCount, weather: {...} | null, baseline: BaselineStat | null }.
-  Requires station_id.
+GET /api/stations/:stationId/history?days=7&date=YYYY-MM-DD
+  Daily rollup, wrapped as { stationId, days: [...] }, each day
+  { date, pm25, readingCount, weather: {...} | null, baseline: BaselineStat | null }.
+  `days` default 7, max 30 (400 above that). `date` is the inclusive end-anchor; `days` counts
+  backward from it. Requires station_id.
   → get_station_history
 
 GET /api/stations/:stationId/baseline
-  365 rows (one per calendar day): { month, day, medianPm25, p25Pm25, p75Pm25, n }.
-  Also { minYear, maxYear }. Requires station_id.
+  { data: 365 rows (one per calendar day, no Feb 29): { month, day, medianPm25, p25Pm25, p75Pm25, n },
+  minYear, maxYear }. `n` varies widely (observed 3–67 on one station; a large share of rows can
+  be n<30 — a common case, not an edge case). Requires station_id.
   → get_station_baseline
 
 GET /api/stations?bbox=...
@@ -148,10 +151,21 @@ interface Station {
   parameters: string[];
 }
 
-// What /api/stations/:id/history returns (array of):
+// What /api/stations/:id/history returns — VERIFIED 2026-07-26 (JOO-32) against the live API.
+// Two things this doc previously got wrong: the response is wrapped as { stationId, days: [...] },
+// not a bare array; and the PM2.5 field is `pm25`, not `meanPm25`.
+// Also verified: `pm25: 0` paired with `readingCount: 0` is a sentinel for "no reading ingested
+// that day" — a bogus station_id returns this pair for every day, and a real station with a
+// lapsed feed shows the same pair for its un-ingested recent days (while `weather` can still be
+// non-null for those days — weather comes from a separate source, decoupled from PM2.5 ingestion).
+// Don't classify this sentinel 0 as a real "Good" reading — treat readingCount:0 as null pm25/aqi.
+interface StationHistoryApiResponse {
+  stationId: string;
+  days: StationDayHistory[];
+}
 interface StationDayHistory {
   date: string;
-  meanPm25: number;          // pipe through logic/aqi.ts before returning
+  pm25: number;               // 0 + readingCount:0 means "no data", not a real zero reading
   readingCount: number;
   weather: {
     windSpeedKmh: number | null;
@@ -160,6 +174,16 @@ interface StationDayHistory {
     relativeHumidity2m: number | null;
   } | null;
   baseline: { medianPm25: number; p25Pm25: number; p75Pm25: number; n: number } | null;
+}
+
+// What /api/stations/:id/baseline returns — VERIFIED 2026-07-26 (JOO-32) against the live API,
+// station 225572: exactly 365 rows (no Feb 29), n ranging 3–67, minYear 2021, maxYear 2026.
+// Invalid/nonexistent station_id doesn't 404 — same gotcha as /station-readings/history — it
+// returns 200 with { data: [], minYear: null, maxYear: null }.
+interface StationBaselineApiResponse {
+  data: { month: number; day: number; medianPm25: number; p25Pm25: number; p75Pm25: number; n: number }[];
+  minYear: number | null;
+  maxYear: number | null;
 }
 
 // What /api/weather returns (array of):
