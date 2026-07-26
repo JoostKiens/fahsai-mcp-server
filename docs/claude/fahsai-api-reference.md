@@ -22,7 +22,8 @@ GET /api/station-readings/latest?parameter=pm25&bbox=...&date=YYYY-MM-DD
   → get_station_readings
 
 GET /api/station-readings/history?station_id=...&parameter=pm25&hours=24
-  Raw hourly time series for a single station. Requires station_id.
+  Raw time series for a single station. Requires station_id. Max 168 hours / 7 days
+  (enforce client-side; the API itself 400s above that).
   → get_station_readings_history
 
 GET /api/stations/:stationId/history?days=5&date=YYYY-MM-DD
@@ -120,6 +121,20 @@ interface StationReadingLatest {
   attribution?: unknown; // never observed live; pass through opaquely when present
 }
 
+// What /api/station-readings/history returns — VERIFIED 2026-07-26 (JOO-31) against the live
+// API, 10+ stations including full 168-hour windows. Leaner than StationReadingLatest above —
+// no stationName/lat/lng/country/attribution, just the series for the one station requested.
+// The `parameter` query param is confirmed a no-op here too (byte-identical results for
+// pm25/pm10/bogus/omitted against the same station+window), same finding as /latest (JOO-30).
+// Unlike /latest, an invalid/nonexistent station_id does NOT 404 — it returns 200 with an
+// empty `data` array, same as a valid station_id with nothing ingested for the window yet;
+// the API gives no way to distinguish the two.
+interface StationReadingHistory {
+  stationId: string;
+  value: number; // pm25 µg/m³ — pipe through logic/aqi.ts before returning
+  measuredAt: string; // ISO 8601
+}
+
 // What /api/stations returns (array of):
 interface Station {
   id: string;
@@ -185,3 +200,4 @@ Raw PM2.5 µg/m³, not AQI index values. This is what `logic/aqi.ts` implements 
 - **Attribution**: OpenAQ readings sometimes carry a per-station `attribution` field with requirements beyond the blanket CC BY 4.0 footer note — surface it per-station if present, don't drop it. Not observed on any of 303 live stations sampled 2026-07-26 (JOO-30); `get_station_readings` still passes it through opaquely as a defensive measure.
 - **CAMS is a model, station readings are measurements.** Don't let a tool response or description blur this distinction — an LLM conflating "the model says X" with "a station measured X" is a plausible and consequential mistake.
 - **Ingestion runs on a schedule.** A 404 on a date-scoped route very often means "not ingested yet," not "no data exists" — see `get_latest_date` as the tool to check first when a caller says "today" without a specific date in mind.
+- **`/api/station-readings/history`'s observed cadence is daily, not hourly**, despite the route's `hours` window param — verified 2026-07-26 (JOO-31) across 10+ stations, including full 168-hour windows, every series returned at most one point per calendar day (`00:00:00Z`). True intraday granularity may exist for some provider but wasn't observed anywhere. `get_station_readings_history` doesn't assume hourly cadence — it summarizes whatever points the API actually returns, and its description discloses this to the caller.

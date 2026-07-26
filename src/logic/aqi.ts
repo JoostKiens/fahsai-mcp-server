@@ -22,3 +22,13 @@ export function classifyAqi(pm25: number): AqiResult {
   }
   return { category: 'Hazardous', pm25 };
 }
+
+// classifyAqi throws for a non-finite or negative pm25 — a real possibility for any tool
+// reading raw Fahsai API values (fahsai-client does no runtime validation on the JSON body).
+// This is the shared "one malformed reading shouldn't abort the whole response" policy used
+// by every station-reading tool (get_station_readings, get_station_readings_history, ...):
+// map an invalid value to null instead of throwing, so callers can omit/skip it.
+export function classifyAqiOrNull(pm25: number): AqiResult | null {
+  if (!Number.isFinite(pm25) || pm25 < 0) return null;
+  return classifyAqi(pm25);
+}
