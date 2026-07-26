@@ -1,17 +1,26 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
-import type { FahsaiClient } from '../fahsai-client/client.js';
+import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
-import { FIRE_LIST_TRUNCATION_THRESHOLD } from './fires.constants.js';
+import type { Result } from '../result.js';
+
+// Matches the Fahsai API's own /api/fires/range cap.
+export const FIRES_RANGE_MAX_DAYS = 10;
+
+// Above this count, summarizeFires returns the top-N by FRP instead of the full list.
+export const FIRE_LIST_TRUNCATION_THRESHOLD = 50;
+
+export const FIRE_CONFIDENCE_VALUES = ['low', 'nominal', 'high'] as const;
+export type FireConfidence = (typeof FIRE_CONFIDENCE_VALUES)[number];
+
+// Shared by both get_fires (date) and get_fires_range (start/end).
+export const fireDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be in YYYY-MM-DD format');
 
 export interface FiresToolDeps {
   readonly client: FahsaiClient;
   readonly placeResolver: PlaceResolver;
 }
-
-export const FIRE_CONFIDENCE_VALUES = ['low', 'nominal', 'high'] as const;
-export type FireConfidence = (typeof FIRE_CONFIDENCE_VALUES)[number];
 
 // What /api/fires and /api/fires/range return (array of).
 export interface FirePoint {
@@ -115,6 +124,54 @@ export function summarizeFires(points: readonly FirePoint[]): FireSummary {
   };
 }
 
+export function emptyFireSummary(): FireSummary {
+  return { total: 0, byConfidence: { high: 0, nominal: 0, low: 0, unknown: 0 }, points: [], truncated: false };
+}
+
+// Empty array means "no filter selected" — same as omitting the field entirely, never an
+// empty-string query param (which the API would treat as an explicit, unmatchable filter).
+export function formatConfidenceParam(confidence?: readonly FireConfidence[]): string | undefined {
+  return confidence && confidence.length > 0 ? confidence.join(',') : undefined;
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function parseUtcDate(value: string): Date | null {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  // JS silently rolls over out-of-range days/months (e.g. "2026-02-30" -> March 2) instead
+  // of rejecting them — round-trip through ISO to catch that instead of trusting getTime().
+  return date.toISOString().slice(0, 10) === value ? date : null;
+}
+
+// Cross-field validation the MCP SDK's per-field inputSchema can't express — runs before
+// any network call, per the 10-day cap this server enforces client-side.
+export function validateFiresRange(start: string, end: string): Result<void, string> {
+  const startDate = parseUtcDate(start);
+  if (startDate === null) {
+    return { ok: false, error: `"${start}" is not a valid calendar date.` };
+  }
+
+  const endDate = parseUtcDate(end);
+  if (endDate === null) {
+    return { ok: false, error: `"${end}" is not a valid calendar date.` };
+  }
+
+  if (endDate.getTime() < startDate.getTime()) {
+    return { ok: false, error: '`end` must not be before `start`.' };
+  }
+
+  const days = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY);
+  if (days > FIRES_RANGE_MAX_DAYS) {
+    return {
+      ok: false,
+      error: `Date range spans ${days} days; get_fires_range allows a maximum of ${FIRES_RANGE_MAX_DAYS} days. Narrow the range and try again.`,
+    };
+  }
+
+  return { ok: true, value: undefined };
+}
+
 export const fireSummaryOutputSchema = z.object({
   total: z.number(),
   byConfidence: z.object({
@@ -148,8 +205,8 @@ function combineNotes(...notes: ReadonlyArray<string | undefined>): string | und
 }
 
 // Shared MCP response shaping for both fire tools — success case.
-export function buildFiresToolResponse(summary: FireSummary, extraNote?: string): FireToolResult {
-  const note = combineNotes(extraNote, summary.note);
+export function buildFiresToolResponse(summary: FireSummary, ...extraNotes: ReadonlyArray<string | undefined>): FireToolResult {
+  const note = combineNotes(...extraNotes, summary.note);
   const structuredContent: Record<string, unknown> = note ? { ...summary, note } : { ...summary };
   return {
     content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
@@ -160,4 +217,25 @@ export function buildFiresToolResponse(summary: FireSummary, extraNote?: string)
 // Shared MCP response shaping for both fire tools — error case.
 export function buildFiresToolError(message: string): FireToolResult {
   return { content: [{ type: 'text', text: message }], isError: true };
+}
+
+// Shared fetch -> 404-handling -> summarize -> respond sequence for both fire tools, so a
+// change to that sequence (e.g. how notes get merged) only has to happen once.
+export async function fetchAndSummarizeFires(
+  client: FahsaiClient,
+  path: string,
+  params: FahsaiQueryParams,
+  notFoundNote: string,
+  locationNote?: string,
+): Promise<FireToolResult> {
+  const fetchResult = await client.get<FirePoint[]>(path, params);
+
+  if (!fetchResult.ok) {
+    if (fetchResult.error.kind === 'not-found') {
+      return buildFiresToolResponse(emptyFireSummary(), locationNote, notFoundNote);
+    }
+    return buildFiresToolError(fetchResult.error.message);
+  }
+
+  return buildFiresToolResponse(summarizeFires(fetchResult.value), locationNote);
 }

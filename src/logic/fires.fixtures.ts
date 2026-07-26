@@ -1,4 +1,4 @@
-import type { FireConfidence, FirePoint } from './fires.logic.js';
+import type { FireConfidence, FirePoint } from './fires.js';
 
 export function fakeFirePoint(overrides: Partial<FirePoint> = {}): FirePoint {
   return {

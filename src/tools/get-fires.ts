@@ -2,21 +2,21 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { formatBboxParam } from '../logic/bbox.js';
-import { locationInput, resolveLocationInput } from '../schemas/location.js';
 import {
   FIRE_CONFIDENCE_VALUES,
   buildFiresToolError,
-  buildFiresToolResponse,
+  fetchAndSummarizeFires,
+  fireDateSchema,
   fireSummaryOutputSchema,
-  summarizeFires,
-  type FirePoint,
+  formatConfidenceParam,
   type FireToolResult,
   type FiresToolDeps,
-} from './fires.logic.js';
+} from '../logic/fires.js';
+import { locationInput, resolveLocationInput } from '../schemas/location.js';
 
 export const getFiresInputSchema = z.object({
   ...locationInput.shape,
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format'),
+  date: fireDateSchema,
   confidence: z.array(z.enum(FIRE_CONFIDENCE_VALUES)).optional(),
 });
 
@@ -30,23 +30,13 @@ export function createGetFiresHandler(deps: FiresToolDeps) {
     }
 
     const { bbox, note: locationNote } = locationResult.value;
-    const fetchResult = await deps.client.get<FirePoint[]>('/api/fires', {
-      date: input.date,
-      bbox: formatBboxParam(bbox),
-      confidence: input.confidence?.join(','),
-    });
-
-    if (!fetchResult.ok) {
-      if (fetchResult.error.kind === 'not-found') {
-        return buildFiresToolResponse(
-          { total: 0, byConfidence: { high: 0, nominal: 0, low: 0, unknown: 0 }, points: [], truncated: false },
-          `No fire data ingested for ${input.date} yet.`,
-        );
-      }
-      return buildFiresToolError(fetchResult.error.message);
-    }
-
-    return buildFiresToolResponse(summarizeFires(fetchResult.value), locationNote);
+    return fetchAndSummarizeFires(
+      deps.client,
+      '/api/fires',
+      { date: input.date, bbox: formatBboxParam(bbox), confidence: formatConfidenceParam(input.confidence) },
+      `No fire data ingested for ${input.date} yet.`,
+      locationNote,
+    );
   };
 }
 

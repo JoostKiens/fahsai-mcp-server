@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { FahsaiClient } from '../fahsai-client/client.js';
+import { SMALL_FIRES } from '../logic/fires.fixtures.js';
 import type { PlaceResolver, ResolvedPlace } from '../place-resolver/index.js';
 import { createGetFiresHandler } from './get-fires.js';
-import { SMALL_FIRES } from './fires.fixtures.js';
 
 const CHIANG_MAI_BBOX = { west: 98.5, south: 18.3, east: 99.5, north: 19.3 };
 
@@ -59,6 +59,16 @@ describe('createGetFiresHandler', () => {
     );
   });
 
+  it('omits the confidence param (rather than sending an empty string) when given an empty array', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: [] });
+    const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    await handler({ place: 'Chiang Mai', date: '2026-04-18', confidence: [] });
+
+    expect(get).toHaveBeenCalledWith('/api/fires', expect.objectContaining({ confidence: undefined }));
+  });
+
   it('treats a 404 as "not ingested yet" rather than an error', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({
@@ -110,5 +120,22 @@ describe('createGetFiresHandler', () => {
     const structured = result.structuredContent as { note?: string };
     expect(structured.note).toBe('`place` was ignored because `bbox` was provided directly.');
     expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('combines the location-resolution note with the not-ingested-yet note on a 404', async () => {
+    const resolve = vi.fn();
+    const get = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { kind: 'not-found', status: 404, message: 'No data' },
+    });
+    const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const bbox = { west: 100, south: 13, east: 101, north: 14 };
+
+    const result = await handler({ place: 'Chiang Mai', bbox, date: '2099-01-01' });
+
+    const structured = result.structuredContent as { note?: string };
+    expect(structured.note).toBe(
+      '`place` was ignored because `bbox` was provided directly. No fire data ingested for 2099-01-01 yet.',
+    );
   });
 });
