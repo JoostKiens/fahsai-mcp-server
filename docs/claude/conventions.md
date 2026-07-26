@@ -48,7 +48,7 @@ SOLID was written for class-based OOP. Applied here:
 ## Naming and size
 
 - Function and variable names describe *what*, not *how* (`summarizeFishingEffort`, not `processData`).
-- Keep functions small enough to read without scrolling — if a function has more than one clear "phase" (e.g. both "parse the GFW response" and "compute totals"), split it.
+- Keep functions small enough to read without scrolling — if a function has more than one clear "phase" (e.g. both "parse the FahSai response" and "compute totals"), split it.
 - No magic numbers/strings in tool logic — the `366`-day limit, dataset IDs like `public-global-fishing-effort:latest`, and similar constants live in named exports (`reference-data/` or a `constants.ts`), not inlined in tool files.
 - Avoid deep nesting — prefer early returns (`Result`'s error branch checked first) over pyramided `if`/`else`.
 
@@ -77,7 +77,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | `client`     | FahSai API HTTP client, auth, error typing, rate-limit handling                                                     |
 | `cache`          | `Cache<K,V>`, the 4Wings report queue and 524 recovery                                                           |
 | `reference-data` | Gear types, vessel types                                                                                         |
-| `tools`          | Any MCP tool logic (`src/tools/*`) — use a sub-scope like `tools/find-vessels` if a commit touches only one tool |
+| `tools`          | Any MCP tool logic (`src/tools/*`) — use a sub-scope like `tools/get_weather` if a commit touches only one tool |
 | `docs`           | README, CLAUDE.md, `docs/claude/*`                                                                               |
 | `tests`          | Unit tests, fixtures, live smoke tests, MCP conformance tests                                                    |
 | `release`        | Versioning, npm publish, CI/CD, GitHub repo setup                                                                |

@@ -1,0 +1,2 @@
+export const DEFAULT_RADIUS_KM = 55;
+export const DEFAULT_CACHE_TTL_SECONDS = 86_400;
