@@ -98,6 +98,28 @@ interface FirePoint {
   daynight: string | null;
 }
 
+// What /api/station-readings/latest returns — VERIFIED 2026-07-26 (JOO-30) against the live
+// API, 303 stations across the full SEA bbox; this doc previously had no entry for this route
+// at all. Notable findings:
+//   1. The response is wrapped as { data: StationReadingLatest[] }, matching the { data }
+//      wrapper /api/fires also uses (see FirePoint above).
+//   2. The `parameter` query param appears to be a server-side no-op: `pm25`, `pm10`, a
+//      bogus value, and omitting it entirely all returned byte-identical results.
+//   3. `attribution` was not present on any of the 303 stations sampled. It's kept in the
+//      type below (typed loosely, not assumed to be a string) because it's a real, if rare,
+//      per-station OpenAQ quirk — see "Known upstream gotchas" below — that must be passed
+//      through when present, not dropped.
+interface StationReadingLatest {
+  stationId: string;
+  stationName: string;
+  lat: number;
+  lng: number;
+  country: string;
+  value: number; // pm25 µg/m³ — pipe through logic/aqi.ts before returning
+  measuredAt: string; // ISO 8601
+  attribution?: unknown; // never observed live; pass through opaquely when present
+}
+
 // What /api/stations returns (array of):
 interface Station {
   id: string;
@@ -160,6 +182,6 @@ Raw PM2.5 µg/m³, not AQI index values. This is what `logic/aqi.ts` implements 
 
 ## Known upstream gotchas worth carrying over
 
-- **Attribution**: OpenAQ readings sometimes carry a per-station `attribution` field with requirements beyond the blanket CC BY 4.0 footer note — surface it per-station if present, don't drop it.
+- **Attribution**: OpenAQ readings sometimes carry a per-station `attribution` field with requirements beyond the blanket CC BY 4.0 footer note — surface it per-station if present, don't drop it. Not observed on any of 303 live stations sampled 2026-07-26 (JOO-30); `get_station_readings` still passes it through opaquely as a defensive measure.
 - **CAMS is a model, station readings are measurements.** Don't let a tool response or description blur this distinction — an LLM conflating "the model says X" with "a station measured X" is a plausible and consequential mistake.
 - **Ingestion runs on a schedule.** A 404 on a date-scoped route very often means "not ingested yet," not "no data exists" — see `get_latest_date` as the tool to check first when a caller says "today" without a specific date in mind.
