@@ -8,7 +8,6 @@ import {
   fetchAndSummarizeFires,
   fireDateSchema,
   fireSummaryOutputSchema,
-  formatConfidenceParam,
   type FireToolResult,
   type FiresToolDeps,
 } from '../logic/fires.js';
@@ -33,7 +32,8 @@ export function createGetFiresHandler(deps: FiresToolDeps) {
     return fetchAndSummarizeFires(
       deps.client,
       '/api/fires',
-      { date: input.date, bbox: formatBboxParam(bbox), confidence: formatConfidenceParam(input.confidence) },
+      { date: input.date, bbox: formatBboxParam(bbox) },
+      input.confidence,
       `No fire data ingested for ${input.date} yet.`,
       locationNote,
     );

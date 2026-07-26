@@ -6,6 +6,7 @@ import {
   FIRE_LIST_TRUNCATION_THRESHOLD,
   emptyFireSummary,
   fetchAndSummarizeFires,
+  filterByConfidence,
   formatConfidenceParam,
   summarizeFires,
   validateFiresRange,
@@ -38,12 +39,15 @@ describe('summarizeFires', () => {
       lng: 98.9853,
       frp: 5,
       confidence: 'high',
-      satellite: 'N',
       daynight: 'D',
-      countryId: 'THA',
     });
-    expect(summary.points[0]).not.toHaveProperty('brightTi4');
-    expect(summary.points[0]).not.toHaveProperty('brightTi5');
+  });
+
+  it('buckets an unrecognized raw confidence code as unknown', () => {
+    const summary = summarizeFires([{ ...SMALL_FIRES[0], confidence: 'x' }]);
+
+    expect(summary.byConfidence).toEqual({ high: 0, nominal: 0, low: 0, unknown: 1 });
+    expect(summary.points[0].confidence).toBeNull();
   });
 
   it('truncates to the top-N by FRP (descending) when over the threshold, noting the omitted count', () => {
@@ -83,6 +87,26 @@ describe('emptyFireSummary', () => {
       points: [],
       truncated: false,
     });
+  });
+});
+
+describe('filterByConfidence', () => {
+  it('returns all points unchanged when no filter is given', () => {
+    expect(filterByConfidence(SMALL_FIRES, undefined)).toEqual(SMALL_FIRES);
+    expect(filterByConfidence(SMALL_FIRES, [])).toEqual(SMALL_FIRES);
+  });
+
+  it('keeps only points whose raw confidence code maps into the requested labels', () => {
+    // SMALL_FIRES: id1='h', id2='n', id3='l', id4=null
+    const filtered = filterByConfidence(SMALL_FIRES, ['high', 'low']);
+
+    expect(filtered.map((p) => p.id)).toEqual([1, 3]);
+  });
+
+  it('excludes points with a null or unrecognized confidence code even if not explicitly filtered out', () => {
+    const filtered = filterByConfidence(SMALL_FIRES, ['nominal']);
+
+    expect(filtered.map((p) => p.id)).toEqual([2]);
   });
 });
 
@@ -143,13 +167,35 @@ function fakeClient(get: FahsaiClient['get']): FahsaiClient {
 }
 
 describe('fetchAndSummarizeFires', () => {
-  it('summarizes on a successful fetch', async () => {
-    const get = vi.fn().mockResolvedValue({ ok: true, value: SMALL_FIRES });
+  it('unwraps the {data: [...]} response envelope and summarizes it', async () => {
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
 
-    const result = await fetchAndSummarizeFires(fakeClient(get), '/api/fires', { date: '2026-04-18' }, 'not found');
+    const result = await fetchAndSummarizeFires(
+      fakeClient(get),
+      '/api/fires',
+      { date: '2026-04-18' },
+      undefined,
+      'not found',
+    );
 
     const structured = result.structuredContent as { total: number };
     expect(structured.total).toBe(4);
+  });
+
+  it('sends the confidence param and additionally filters client-side, since the API param has no effect', async () => {
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
+
+    const result = await fetchAndSummarizeFires(
+      fakeClient(get),
+      '/api/fires',
+      { date: '2026-04-18' },
+      ['high'],
+      'not found',
+    );
+
+    expect(get).toHaveBeenCalledWith('/api/fires', { date: '2026-04-18', confidence: 'high' });
+    const structured = result.structuredContent as { total: number };
+    expect(structured.total).toBe(1);
   });
 
   it('combines the location note with the not-ingested-yet note on a 404', async () => {
@@ -162,6 +208,7 @@ describe('fetchAndSummarizeFires', () => {
       fakeClient(get),
       '/api/fires',
       { date: '2099-01-01' },
+      undefined,
       'No fire data ingested for 2099-01-01 yet.',
       '`place` was ignored because `bbox` was provided directly.',
     );
@@ -179,7 +226,13 @@ describe('fetchAndSummarizeFires', () => {
       error: { kind: 'server-error', status: 500, message: 'Fahsai API server error' },
     });
 
-    const result = await fetchAndSummarizeFires(fakeClient(get), '/api/fires', { date: '2026-04-18' }, 'not found');
+    const result = await fetchAndSummarizeFires(
+      fakeClient(get),
+      '/api/fires',
+      { date: '2026-04-18' },
+      undefined,
+      'not found',
+    );
 
     expect(result.isError).toBe(true);
   });

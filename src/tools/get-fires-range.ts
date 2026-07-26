@@ -9,7 +9,6 @@ import {
   fetchAndSummarizeFires,
   fireDateSchema,
   fireSummaryOutputSchema,
-  formatConfidenceParam,
   validateFiresRange,
   type FireToolResult,
   type FiresToolDeps,
@@ -41,12 +40,8 @@ export function createGetFiresRangeHandler(deps: FiresToolDeps) {
     return fetchAndSummarizeFires(
       deps.client,
       '/api/fires/range',
-      {
-        start: input.start,
-        end: input.end,
-        bbox: formatBboxParam(bbox),
-        confidence: formatConfidenceParam(input.confidence),
-      },
+      { start: input.start, end: input.end, bbox: formatBboxParam(bbox) },
+      input.confidence,
       `No fire data ingested for ${input.start}–${input.end} yet.`,
       locationNote,
     );

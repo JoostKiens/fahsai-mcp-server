@@ -31,7 +31,7 @@ function fakeClient(get: FahsaiClient['get']): FahsaiClient {
 describe('createGetFiresRangeHandler', () => {
   it('resolves, fetches the range endpoint, and summarizes on the happy path', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: SMALL_FIRES });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
     const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
 
     const result = await handler({ place: 'Chiang Mai', start: '2026-04-01', end: '2026-04-05' });
@@ -47,9 +47,25 @@ describe('createGetFiresRangeHandler', () => {
     expect(structured.total).toBe(4);
   });
 
+  it('filters results by confidence client-side (the API param has no server-side effect)', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
+    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    const result = await handler({
+      place: 'Chiang Mai',
+      start: '2026-04-01',
+      end: '2026-04-05',
+      confidence: ['high'],
+    });
+
+    const structured = result.structuredContent as { total: number };
+    expect(structured.total).toBe(1);
+  });
+
   it('omits the confidence param (rather than sending an empty string) when given an empty array', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: [] });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
     const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
 
     await handler({ place: 'Chiang Mai', start: '2026-04-01', end: '2026-04-05', confidence: [] });

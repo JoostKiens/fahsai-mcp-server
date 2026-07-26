@@ -31,7 +31,7 @@ function fakeClient(get: FahsaiClient['get']): FahsaiClient {
 describe('createGetFiresHandler', () => {
   it('resolves the place, fetches, and summarizes on the happy path', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: SMALL_FIRES });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
     const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
 
     const result = await handler({ place: 'Chiang Mai', date: '2026-04-18' });
@@ -48,7 +48,7 @@ describe('createGetFiresHandler', () => {
 
   it('joins the confidence array into a comma-separated query param', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: [] });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
     const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
 
     await handler({ place: 'Chiang Mai', date: '2026-04-18', confidence: ['high', 'nominal'] });
@@ -59,9 +59,20 @@ describe('createGetFiresHandler', () => {
     );
   });
 
+  it('filters results by confidence client-side (the API param has no server-side effect)', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
+    const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    const result = await handler({ place: 'Chiang Mai', date: '2026-04-18', confidence: ['high'] });
+
+    const structured = result.structuredContent as { total: number };
+    expect(structured.total).toBe(1);
+  });
+
   it('omits the confidence param (rather than sending an empty string) when given an empty array', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: [] });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
     const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
 
     await handler({ place: 'Chiang Mai', date: '2026-04-18', confidence: [] });
@@ -111,7 +122,7 @@ describe('createGetFiresHandler', () => {
 
   it('surfaces the location-resolution note (e.g. bbox overriding place) in the response', async () => {
     const resolve = vi.fn();
-    const get = vi.fn().mockResolvedValue({ ok: true, value: [] });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
     const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
     const bbox = { west: 100, south: 13, east: 101, north: 14 };
 
