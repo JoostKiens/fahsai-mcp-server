@@ -3,8 +3,6 @@ import { z } from 'zod';
 
 import { formatBboxParam } from '../logic/bbox.js';
 import {
-  buildStationReadingsToolError,
-  buildStationReadingsToolResponse,
   emptyStationReadingsSummary,
   stationReadingsOutputSchema,
   summarizeStationReadings,
@@ -12,14 +10,13 @@ import {
   type StationReadingsToolDeps,
   type StationReadingsToolResult,
 } from '../logic/station-readings.js';
+import { buildToolError, buildToolResponse } from '../logic/tool-response.js';
+import { isoDateSchema } from '../schemas/date.js';
 import { locationInput, resolveLocationInput } from '../schemas/location.js';
 
 export const getStationReadingsInputSchema = z.object({
   ...locationInput.shape,
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format')
-    .optional(),
+  date: isoDateSchema.optional(),
 });
 
 export type GetStationReadingsInput = z.infer<typeof getStationReadingsInputSchema>;
@@ -37,7 +34,7 @@ export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
   return async (input: GetStationReadingsInput): Promise<StationReadingsToolResult> => {
     const locationResult = await resolveLocationInput(input, deps.placeResolver);
     if (!locationResult.ok) {
-      return buildStationReadingsToolError(locationResult.error.message);
+      return buildToolError(locationResult.error.message);
     }
 
     const { bbox, note: locationNote } = locationResult.value;
@@ -51,27 +48,20 @@ export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
 
     if (!fetchResult.ok) {
       if (fetchResult.error.kind === 'not-found') {
-        return buildStationReadingsToolResponse(
+        return buildToolResponse(
           emptyStationReadingsSummary(),
           locationNote,
           noDataNote(input.date),
         );
       }
-      return buildStationReadingsToolError(fetchResult.error.message);
+      return buildToolError(fetchResult.error.message);
     }
 
     if (fetchResult.value.data.length === 0) {
-      return buildStationReadingsToolResponse(
-        emptyStationReadingsSummary(),
-        locationNote,
-        noDataNote(input.date),
-      );
+      return buildToolResponse(emptyStationReadingsSummary(), locationNote, noDataNote(input.date));
     }
 
-    return buildStationReadingsToolResponse(
-      summarizeStationReadings(fetchResult.value.data),
-      locationNote,
-    );
+    return buildToolResponse(summarizeStationReadings(fetchResult.value.data), locationNote);
   };
 }
 

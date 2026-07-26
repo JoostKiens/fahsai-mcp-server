@@ -32,3 +32,15 @@ export const SMALL_STATION_READINGS: readonly StationReadingLatestRaw[] = [
     attribution: { name: 'Example Provider', url: 'https://example.test/attribution' },
   }),
 ];
+
+// A mix of valid stations and stations with a malformed `value` — the live API has no
+// runtime validation (fahsai-client casts the JSON body straight to T), so a negative,
+// NaN, or non-finite value from an offline/miscalibrated sensor is a real possibility.
+// summarizeStationReadings should omit these rather than throw (classifyAqi throws for
+// exactly this input).
+export const STATION_READINGS_WITH_INVALID_VALUE: readonly StationReadingLatestRaw[] = [
+  fakeStationReading({ stationId: 'valid-1', value: 5.33 }),
+  fakeStationReading({ stationId: 'invalid-negative', value: -1 }),
+  fakeStationReading({ stationId: 'invalid-nan', value: NaN }),
+  fakeStationReading({ stationId: 'valid-2', value: 20 }),
+];

@@ -4,7 +4,6 @@ import { z } from 'zod';
 import type { FahsaiClient } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
 import { classifyAqi, type AqiCategory } from './aqi.js';
-import { combineNotes } from './notes.js';
 
 export interface StationReadingsToolDeps {
   readonly client: FahsaiClient;
@@ -50,7 +49,15 @@ export interface StationReadingsSummary {
   readonly note?: string;
 }
 
-function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSummary {
+// `classifyAqi` throws for a non-finite or negative pm25 — a real possibility here since
+// fahsai-client does no runtime validation on the API's JSON body (client.ts casts it
+// straight to T), so nothing guarantees every station's `value` is well-formed. Returns
+// null instead of throwing, so one malformed reading doesn't abort the whole response —
+// mirrors fires.ts's toFireConfidence, which maps unexpected input to null rather than
+// throwing.
+function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSummary | null {
+  if (!Number.isFinite(raw.value) || raw.value < 0) return null;
+
   const { category, pm25 } = classifyAqi(raw.value);
   const summary: StationReadingSummary = {
     stationId: raw.stationId,
@@ -71,7 +78,24 @@ function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSu
 export function summarizeStationReadings(
   raw: readonly StationReadingLatestRaw[],
 ): StationReadingsSummary {
-  return { total: raw.length, readings: raw.map(toStationReadingSummary) };
+  const readings: StationReadingSummary[] = [];
+  let omitted = 0;
+
+  for (const entry of raw) {
+    const summary = toStationReadingSummary(entry);
+    if (summary === null) {
+      omitted += 1;
+      continue;
+    }
+    readings.push(summary);
+  }
+
+  return {
+    total: readings.length,
+    readings,
+    note:
+      omitted > 0 ? `${omitted} station reading(s) omitted for an invalid PM2.5 value.` : undefined,
+  };
 }
 
 export function emptyStationReadingsSummary(): StationReadingsSummary {
@@ -97,21 +121,3 @@ export const stationReadingsOutputSchema = z.object({
 });
 
 export type StationReadingsToolResult = CallToolResult;
-
-// Shared MCP response shaping — success case.
-export function buildStationReadingsToolResponse(
-  summary: StationReadingsSummary,
-  ...extraNotes: ReadonlyArray<string | undefined>
-): StationReadingsToolResult {
-  const note = combineNotes(...extraNotes, summary.note);
-  const structuredContent: Record<string, unknown> = note ? { ...summary, note } : { ...summary };
-  return {
-    content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
-    structuredContent,
-  };
-}
-
-// Shared MCP response shaping — error case.
-export function buildStationReadingsToolError(message: string): StationReadingsToolResult {
-  return { content: [{ type: 'text', text: message }], isError: true };
-}

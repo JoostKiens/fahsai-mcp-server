@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { EMPTY_STATION_READINGS, SMALL_STATION_READINGS } from './station-readings.fixtures.js';
+import {
+  EMPTY_STATION_READINGS,
+  SMALL_STATION_READINGS,
+  STATION_READINGS_WITH_INVALID_VALUE,
+} from './station-readings.fixtures.js';
 import { summarizeStationReadings } from './station-readings.js';
 
 describe('summarizeStationReadings', () => {
@@ -40,5 +44,19 @@ describe('summarizeStationReadings', () => {
     const summary = summarizeStationReadings(SMALL_STATION_READINGS);
 
     expect(summary.readings[0]).not.toHaveProperty('attribution');
+  });
+
+  it('omits stations with an invalid pm25 value instead of throwing, with a note', () => {
+    const summary = summarizeStationReadings(STATION_READINGS_WITH_INVALID_VALUE);
+
+    expect(summary.total).toBe(2);
+    expect(summary.readings.map((r) => r.stationId)).toEqual(['valid-1', 'valid-2']);
+    expect(summary.note).toBe('2 station reading(s) omitted for an invalid PM2.5 value.');
+  });
+
+  it('has no note when every reading is valid', () => {
+    const summary = summarizeStationReadings(SMALL_STATION_READINGS);
+
+    expect(summary.note).toBeUndefined();
   });
 });

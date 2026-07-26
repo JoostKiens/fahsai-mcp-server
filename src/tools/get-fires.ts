@@ -4,18 +4,18 @@ import { z } from 'zod';
 import { formatBboxParam } from '../logic/bbox.js';
 import {
   FIRE_CONFIDENCE_VALUES,
-  buildFiresToolError,
   fetchAndSummarizeFires,
-  fireDateSchema,
   fireSummaryOutputSchema,
   type FireToolResult,
   type FiresToolDeps,
 } from '../logic/fires.js';
+import { buildToolError } from '../logic/tool-response.js';
+import { isoDateSchema } from '../schemas/date.js';
 import { locationInput, resolveLocationInput } from '../schemas/location.js';
 
 export const getFiresInputSchema = z.object({
   ...locationInput.shape,
-  date: fireDateSchema,
+  date: isoDateSchema,
   confidence: z.array(z.enum(FIRE_CONFIDENCE_VALUES)).optional(),
 });
 
@@ -25,7 +25,7 @@ export function createGetFiresHandler(deps: FiresToolDeps) {
   return async (input: GetFiresInput): Promise<FireToolResult> => {
     const locationResult = await resolveLocationInput(input, deps.placeResolver);
     if (!locationResult.ok) {
-      return buildFiresToolError(locationResult.error.message);
+      return buildToolError(locationResult.error.message);
     }
 
     const { bbox, note: locationNote } = locationResult.value;

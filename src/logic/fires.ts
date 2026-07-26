@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
 import type { Result } from '../result.js';
-import { combineNotes } from './notes.js';
+import { buildToolError, buildToolResponse } from './tool-response.js';
 
 // Matches the Fahsai API's own /api/fires/range cap.
 export const FIRES_RANGE_MAX_DAYS = 10;
@@ -27,11 +27,6 @@ const CONFIDENCE_CODE_TO_LABEL: Readonly<Record<string, FireConfidence>> = {
 function toFireConfidence(code: string | null): FireConfidence | null {
   return code === null ? null : (CONFIDENCE_CODE_TO_LABEL[code] ?? null);
 }
-
-// Shared by both get_fires (date) and get_fires_range (start/end).
-export const fireDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be in YYYY-MM-DD format');
 
 export interface FiresToolDeps {
   readonly client: FahsaiClient;
@@ -234,24 +229,6 @@ export const fireSummaryOutputSchema = z.object({
 
 export type FireToolResult = CallToolResult;
 
-// Shared MCP response shaping for both fire tools — success case.
-export function buildFiresToolResponse(
-  summary: FireSummary,
-  ...extraNotes: ReadonlyArray<string | undefined>
-): FireToolResult {
-  const note = combineNotes(...extraNotes, summary.note);
-  const structuredContent: Record<string, unknown> = note ? { ...summary, note } : { ...summary };
-  return {
-    content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
-    structuredContent,
-  };
-}
-
-// Shared MCP response shaping for both fire tools — error case.
-export function buildFiresToolError(message: string): FireToolResult {
-  return { content: [{ type: 'text', text: message }], isError: true };
-}
-
 // Shared fetch -> 404-handling -> filter -> summarize -> respond sequence for both fire
 // tools, so a change to that sequence (e.g. how notes get merged) only has to happen once.
 // `confidence` is applied client-side (see filterByConfidence) in addition to being sent as
@@ -271,11 +248,11 @@ export async function fetchAndSummarizeFires(
 
   if (!fetchResult.ok) {
     if (fetchResult.error.kind === 'not-found') {
-      return buildFiresToolResponse(emptyFireSummary(), locationNote, notFoundNote);
+      return buildToolResponse(emptyFireSummary(), locationNote, notFoundNote);
     }
-    return buildFiresToolError(fetchResult.error.message);
+    return buildToolError(fetchResult.error.message);
   }
 
   const points = filterByConfidence(fetchResult.value.data, confidence);
-  return buildFiresToolResponse(summarizeFires(points), locationNote);
+  return buildToolResponse(summarizeFires(points), locationNote);
 }
