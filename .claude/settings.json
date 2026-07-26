@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint *)",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(pnpm --filter frontend typecheck *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm --filter backend typecheck *)",
+      "Bash(npm run lint *)",
+      "mcp__playwright__browser_snapshot",
+      "Bash(npm run build *)",
+      "mcp__claude_ai_Linear__get_issue",
+      "mcp__context7__query-docs",
+      "Bash(pnpm eslint *)",
+      "Bash(npx vitest run *)",
+      "mcp__playwright__browser_wait_for",
+      "Bash(pnpm --filter backend test *)",
+      "Bash(npx prettier --check *)",
+      "Bash(npm run typecheck *)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(pnpm --filter frontend exec tsc --noEmit *)",
+      "mcp__playwright__browser_console_messages",
+      "mcp__context7__resolve-library-id"
+    ]
+  }
+}
