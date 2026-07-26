@@ -19,11 +19,11 @@ Read the doc that matches what you're touching:
 | Directory layout, data flow, the place resolver, transports, security model       | [`docs/claude/architecture.md`](docs/claude/architecture.md)       |
 | Code style — formatting, error handling, module boundaries                        | [`docs/claude/conventions.md`](docs/claude/conventions.md)         |
 | Adding or changing an MCP tool specifically                                       | [`docs/claude/mcp-tools.md`](docs/claude/mcp-tools.md)             |
-| The exact shape of a specific Fahsai API route — params, response fields, gotchas | [`docs/claude/fahsai-api-docs.md`](docs/claude/fahsai-api-docs.md) |
+| The exact shape of a specific Fahsai API route — params, response fields, gotchas | [`docs/claude/fahsai-api-reference.md`](docs/claude/fahsai-api-reference.md) |
 
 We follow the [MCP best practices guide](https://modelcontextprotocol.info/docs/best-practices/), **adapted for a single-process, single-user local/npx tool**, same posture as this author's other MCP server (`gfw-mcp-server`). `architecture.md` has an explicit adopt/adapt/skip table — don't add production-service patterns "for best practice" without checking that table first.
 
-`fahsai-api-docs.md` is a copy-paste of `fahsai`'s own `docs/claude/architecture.md`, reformatted for internal reference — **treat it as a starting point, not ground truth.** Before shipping a param name or response-shape assumption pulled from this file, verify it against the live API (`npm run test:live` once tools exist, or a throwaway script — see `fahsai-api-reference.md` for the current base URL, since `fahsai.fyi` is the frontend domain and does not proxy the API). If you find the doc wrong, fix it in place with a note on what was verified and when — the next person to read it needs the correction too.
+`fahsai-api-reference.md` is a copy-paste of `fahsai`'s own `docs/claude/architecture.md`, reformatted for internal reference — **treat it as a starting point, not ground truth.** Before shipping a param name or response-shape assumption pulled from this file, verify it against the live API (`npm run test:live` once tools exist, or a throwaway script — see `fahsai-api-reference.md` for the current base URL, since `fahsai.fyi` is the frontend domain and does not proxy the API). If you find the doc wrong, fix it in place with a note on what was verified and when — the next person to read it needs the correction too.
 
 ## Non-negotiable constraints
 
