@@ -45,3 +45,8 @@ export function clampToDataBbox(
 
   return { west, south, east, north };
 }
+
+// Fahsai's `bbox` query param format across every route: "west,south,east,north".
+export function formatBboxParam(bbox: BoundingBox): string {
+  return `${bbox.west},${bbox.south},${bbox.east},${bbox.north}`;
+}

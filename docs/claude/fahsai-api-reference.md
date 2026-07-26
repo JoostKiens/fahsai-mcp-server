@@ -79,18 +79,22 @@ GET /health
 ## Response shapes worth knowing (from `fahsai`'s `docs/claude/types.md`)
 
 ```typescript
-// What /api/fires and /api/fires/range return (array of):
+// What /api/fires and /api/fires/range actually return — CORRECTED 2026-07-26 against the
+// live API (JOO-29). Two things this doc previously got wrong:
+//   1. The response is wrapped as { data: FirePoint[] }, not a bare array.
+//   2. FirePoint has no brightTi4, brightTi5, countryId, or satellite fields, and
+//      `confidence` is a raw single-letter FIRMS code ('l' | 'n' | 'h' | null), not the
+//      full word — this server maps it to 'low' | 'nominal' | 'high' before returning it.
+// Also verified: the `confidence` query param has no observed server-side filtering effect
+// (identical results whether passed as words, letter codes, or omitted) — this server
+// filters client-side instead (see src/logic/fires.ts's filterByConfidence).
 interface FirePoint {
   id: number;
   detectedAt: string;        // ISO 8601
   lat: number;
   lng: number;
   frp: number | null;        // fire radiative power, MW — use for top-N ranking when summarizing
-  brightTi4: number | null;
-  brightTi5: number | null;
-  countryId: string;         // ISO 3166-1 alpha-3
-  satellite: string | null;
-  confidence: string | null; // 'low' | 'nominal' | 'high' — filter noise on this field
+  confidence: string | null; // raw FIRMS code: 'l' | 'n' | 'h' | null
   daynight: string | null;
 }
 
