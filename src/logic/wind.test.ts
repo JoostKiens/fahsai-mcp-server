@@ -35,4 +35,16 @@ describe('parseWindDir', () => {
     expect(result.fromQuadrant).toBe(result.fromLabel);
     expect(result.toQuadrant).toBe(result.toLabel);
   });
+
+  it('throws RangeError for NaN', () => {
+    expect(() => parseWindDir(NaN)).toThrow(RangeError);
+  });
+
+  it('throws RangeError for Infinity', () => {
+    expect(() => parseWindDir(Infinity)).toThrow(RangeError);
+  });
+
+  it('throws RangeError for -Infinity', () => {
+    expect(() => parseWindDir(-Infinity)).toThrow(RangeError);
+  });
 });

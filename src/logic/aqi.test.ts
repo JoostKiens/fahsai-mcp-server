@@ -41,4 +41,16 @@ describe('classifyAqi', () => {
   it('passes pm25 through unchanged', () => {
     expect(classifyAqi(37.8).pm25).toBe(37.8);
   });
+
+  it('throws RangeError for NaN', () => {
+    expect(() => classifyAqi(NaN)).toThrow(RangeError);
+  });
+
+  it('throws RangeError for Infinity', () => {
+    expect(() => classifyAqi(Infinity)).toThrow(RangeError);
+  });
+
+  it('throws RangeError for negative pm25', () => {
+    expect(() => classifyAqi(-1)).toThrow(RangeError);
+  });
 });

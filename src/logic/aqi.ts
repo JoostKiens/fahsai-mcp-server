@@ -6,13 +6,7 @@ const BREAKPOINTS = [
   { max: 250.4, category: 'Very Unhealthy' },
 ] as const;
 
-export type AqiCategory =
-  | 'Good'
-  | 'Moderate'
-  | 'Unhealthy for Sensitive Groups'
-  | 'Unhealthy'
-  | 'Very Unhealthy'
-  | 'Hazardous';
+export type AqiCategory = (typeof BREAKPOINTS)[number]['category'] | 'Hazardous';
 
 export interface AqiResult {
   readonly category: AqiCategory;
@@ -20,6 +14,9 @@ export interface AqiResult {
 }
 
 export function classifyAqi(pm25: number): AqiResult {
+  if (!Number.isFinite(pm25) || pm25 < 0) {
+    throw new RangeError(`classifyAqi: invalid pm25 value: ${pm25}`);
+  }
   for (const { max, category } of BREAKPOINTS) {
     if (pm25 <= max) return { category, pm25 };
   }

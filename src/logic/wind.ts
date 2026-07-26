@@ -1,17 +1,6 @@
 const DIRECTIONS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 export type CompassLabel = (typeof DIRECTIONS)[number];
 
-const OPPOSITES: Readonly<Record<CompassLabel, CompassLabel>> = {
-  N: 'S',
-  NE: 'SW',
-  E: 'W',
-  SE: 'NW',
-  S: 'N',
-  SW: 'NE',
-  W: 'E',
-  NW: 'SE',
-};
-
 export interface WindDir {
   readonly fromLabel: CompassLabel;
   readonly toLabel: CompassLabel;
@@ -20,8 +9,11 @@ export interface WindDir {
 }
 
 export function parseWindDir(directionDeg: number): WindDir {
+  if (!Number.isFinite(directionDeg)) {
+    throw new RangeError(`parseWindDir: invalid directionDeg value: ${directionDeg}`);
+  }
   const idx = Math.round((((directionDeg % 360) + 360) % 360) / 45) % 8;
   const fromLabel = DIRECTIONS[idx];
-  const toLabel = OPPOSITES[fromLabel];
+  const toLabel = DIRECTIONS[(idx + 4) % 8];
   return { fromLabel, toLabel, fromQuadrant: fromLabel, toQuadrant: toLabel };
 }
