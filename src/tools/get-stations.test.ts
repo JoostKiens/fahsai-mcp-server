@@ -1,32 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { FahsaiClient } from '../fahsai-client/client.js';
+import { fakeClient } from '../fahsai-client/client.fixtures.js';
 import { EMPTY_STATIONS, SMALL_STATIONS } from '../logic/stations.fixtures.js';
-import type { PlaceResolver, ResolvedPlace } from '../place-resolver/index.js';
+import { fakePlaceResolver, fakeResolvedPlace } from '../place-resolver/place-resolver.fixtures.js';
 import { createGetStationsHandler } from './get-stations.js';
-
-const CHIANG_MAI_BBOX = { west: 98.5, south: 18.3, east: 99.5, north: 19.3 };
-
-function fakePlaceResolver(resolve: PlaceResolver['resolve']): PlaceResolver {
-  return { resolve };
-}
-
-function fakeResolvedPlace(overrides: Partial<ResolvedPlace> = {}): ResolvedPlace {
-  return {
-    query: 'Chiang Mai',
-    matchedName: 'Chiang Mai, Thailand',
-    lat: 18.7883,
-    lng: 98.9853,
-    bbox: CHIANG_MAI_BBOX,
-    outsideCoverage: false,
-    otherMatchesCount: 0,
-    ...overrides,
-  };
-}
-
-function fakeClient(get: FahsaiClient['get']): FahsaiClient {
-  return { get };
-}
 
 describe('createGetStationsHandler', () => {
   it('resolves the place, fetches, and returns the full station list unsummarized', async () => {
@@ -50,6 +27,19 @@ describe('createGetStationsHandler', () => {
 
     const result = await handler({ place: 'Chiang Mai' });
 
+    const structured = result.structuredContent as { total: number; stations: unknown[] };
+    expect(structured.total).toBe(0);
+    expect(structured.stations).toEqual([]);
+  });
+
+  it('treats a malformed (non-object) success body as an empty list rather than throwing', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: null });
+    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    const result = await handler({ place: 'Chiang Mai' });
+
+    expect(result.isError).toBeUndefined();
     const structured = result.structuredContent as { total: number; stations: unknown[] };
     expect(structured.total).toBe(0);
     expect(structured.stations).toEqual([]);

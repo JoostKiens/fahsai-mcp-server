@@ -35,8 +35,12 @@ export function createGetStationsHandler(deps: StationsToolDeps) {
     }
 
     // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against
-    // a malformed success body instead of letting downstream array methods throw.
-    const data = Array.isArray(fetchResult.value.data) ? fetchResult.value.data : [];
+    // a malformed success body (e.g. a bare `null`, or a `data` field that's missing/renamed)
+    // instead of letting `.data` access or downstream array methods throw. A bbox with
+    // genuinely zero stations is a normal, common result (verified live), so this is
+    // deliberately silent rather than attaching a "may be malformed" note — unlike
+    // get-station-history.ts, where an empty result is never a valid response on its own.
+    const data = Array.isArray(fetchResult.value?.data) ? fetchResult.value.data : [];
 
     return buildToolResponse(summarizeStations(data), locationNote);
   };
