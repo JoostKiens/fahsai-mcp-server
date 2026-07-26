@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { FAHSAI_DATA_BBOX, type BoundingBox } from '../logic/bbox.js';
 import type { PlaceResolver, ResolvedPlace } from '../place-resolver/index.js';
-import { resolveLocationInput } from './location.js';
+import { locationInput, resolveLocationInput } from './location.js';
 
 const CHIANG_MAI_BBOX: BoundingBox = { west: 98.5, south: 18.3, east: 99.5, north: 19.3 };
 
@@ -94,5 +94,57 @@ describe('resolveLocationInput', () => {
     const result = await resolveLocationInput({ place: 'Nowhereville' }, placeResolver);
 
     expect(result).toEqual(resolverError);
+  });
+
+  it('reports outside-coverage when a given bbox does not overlap Fahsai\'s data bbox at all', async () => {
+    const resolve = vi.fn();
+    const placeResolver = fakePlaceResolver(resolve);
+    const europeBbox: BoundingBox = { west: -10, south: 40, east: 10, north: 50 };
+
+    const result = await resolveLocationInput({ bbox: europeBbox }, placeResolver);
+
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: 'outside-coverage', message: "The given bbox does not overlap Fahsai's coverage area." },
+    });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('notes that radius_km was ignored when bbox is also given', async () => {
+    const resolve = vi.fn();
+    const placeResolver = fakePlaceResolver(resolve);
+    const bbox: BoundingBox = { west: 100, south: 13, east: 101, north: 14 };
+
+    const result = await resolveLocationInput({ bbox, radius_km: 50 }, placeResolver);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('Expected success result');
+    expect(result.value.note).toBe('`radius_km` was ignored because `bbox` was provided directly.');
+  });
+
+  it('notes that both place and radius_km were ignored when bbox is also given', async () => {
+    const resolve = vi.fn();
+    const placeResolver = fakePlaceResolver(resolve);
+    const bbox: BoundingBox = { west: 100, south: 13, east: 101, north: 14 };
+
+    const result = await resolveLocationInput({ place: 'Chiang Mai', bbox, radius_km: 50 }, placeResolver);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('Expected success result');
+    expect(result.value.note).toBe('`place` and `radius_km` were ignored because `bbox` was provided directly.');
+  });
+});
+
+describe('locationInput', () => {
+  it('rejects a bbox with swapped corners (west >= east or south >= north)', () => {
+    const result = locationInput.safeParse({ bbox: { west: 101, south: 14, east: 100, north: 13 } });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts a well-formed bbox', () => {
+    const result = locationInput.safeParse({ bbox: { west: 100, south: 13, east: 101, north: 14 } });
+
+    expect(result.success).toBe(true);
   });
 });
