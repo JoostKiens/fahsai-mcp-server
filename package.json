@@ -20,7 +20,8 @@
     "dev": "tsc -w -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
-    "test": "vitest"
+    "test": "vitest",
+    "test:live": "LIVE=true vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

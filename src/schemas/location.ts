@@ -4,7 +4,7 @@ import { clampToDataBbox, FAHSAI_DATA_BBOX, type BoundingBox } from '../logic/bb
 import type { PlaceResolver, PlaceResolverError } from '../place-resolver/index.js';
 import type { Result } from '../result.js';
 
-const bboxSchema = z
+export const bboxSchema = z
   .object({
     west: z.number(),
     south: z.number(),
@@ -31,6 +31,12 @@ export interface ResolvedLocation {
 export type LocationResolutionError =
   | PlaceResolverError
   | { readonly kind: 'outside-coverage'; readonly message: string };
+
+// Shared with geocode_place, which resolves a place directly (bypassing this function) but
+// hits the same outside-coverage case and must report it the same way.
+export function placeOutsideCoverageMessage(place: string): string {
+  return `"${place}" is outside Fahsai's coverage area.`;
+}
 
 // Builds a "these inputs were ignored because bbox won" note — never silently drop
 // an input with no signal back to the caller.
@@ -75,7 +81,7 @@ export async function resolveLocationInput(
     if (result.value.bbox === null) {
       return {
         ok: false,
-        error: { kind: 'outside-coverage', message: `"${input.place}" is outside Fahsai's coverage area.` },
+        error: { kind: 'outside-coverage', message: placeOutsideCoverageMessage(input.place) },
       };
     }
     return { ok: true, value: { bbox: result.value.bbox } };
