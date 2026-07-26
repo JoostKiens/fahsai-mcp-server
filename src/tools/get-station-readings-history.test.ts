@@ -2,14 +2,44 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { FahsaiClient } from '../fahsai-client/client.js';
 import { SMALL_STATION_READINGS_HISTORY } from '../logic/station-readings-history.fixtures.js';
-import { createGetStationReadingsHistoryHandler } from './get-station-readings-history.js';
+import {
+  createGetStationReadingsHistoryHandler,
+  getStationReadingsHistoryInputSchema,
+} from './get-station-readings-history.js';
 
 function fakeClient(get: FahsaiClient['get']): FahsaiClient {
   return { get };
 }
 
+describe('getStationReadingsHistoryInputSchema', () => {
+  it('defaults hours to 24 and parameter to pm25 when omitted', () => {
+    const parsed = getStationReadingsHistoryInputSchema.parse({ station_id: '6289999' });
+
+    expect(parsed.hours).toBe(24);
+    expect(parsed.parameter).toBe('pm25');
+  });
+
+  it('accepts a non-pm25 parameter value rather than rejecting it (confirmed API no-op)', () => {
+    const parsed = getStationReadingsHistoryInputSchema.parse({
+      station_id: '6289999',
+      parameter: 'pm10',
+    });
+
+    expect(parsed.parameter).toBe('pm10');
+  });
+
+  it('rejects hours above the 168-hour cap', () => {
+    const result = getStationReadingsHistoryInputSchema.safeParse({
+      station_id: '6289999',
+      hours: 200,
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('createGetStationReadingsHistoryHandler', () => {
-  it('fetches and summarizes on the happy path, applying the hours default', async () => {
+  it('fetches and summarizes on the happy path', async () => {
     const get = vi
       .fn()
       .mockResolvedValue({ ok: true, value: { data: SMALL_STATION_READINGS_HISTORY } });
@@ -25,6 +55,17 @@ describe('createGetStationReadingsHistoryHandler', () => {
     const structured = result.structuredContent as { total: number; stationId: string };
     expect(structured.total).toBe(6);
     expect(structured.stationId).toBe('6289999');
+  });
+
+  it('treats a malformed success body (data not an array) as "no data" instead of throwing', async () => {
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: null } });
+    const handler = createGetStationReadingsHistoryHandler({ client: fakeClient(get) });
+
+    const result = await handler({ station_id: '6289999', parameter: 'pm25', hours: 24 });
+
+    expect(result.isError).toBeUndefined();
+    const structured = result.structuredContent as { total: number };
+    expect(structured.total).toBe(0);
   });
 
   it('does not send a `parameter` query param (it is a no-op on the live API)', async () => {

@@ -2,7 +2,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
 import type { FahsaiClient } from '../fahsai-client/client.js';
-import { classifyAqi, type AqiCategory } from './aqi.js';
+import { classifyAqiOrNull, type AqiCategory } from './aqi.js';
 
 // Matches the live API's own cap on /api/station-readings/history — verified 2026-07-26
 // (JOO-31): hours>168 is a 400 ("hours cannot exceed 168 (7 days)").
@@ -41,15 +41,11 @@ export interface StationReadingsHistorySummary {
   readonly note?: string;
 }
 
-// classifyAqi throws for a non-finite or negative pm25 — a real possibility since
-// fahsai-client does no runtime validation on the API's JSON body. Returns null instead of
-// throwing, so one malformed point doesn't abort the whole series — mirrors
-// station-readings.ts's toStationReadingSummary.
 function toStationReadingHistoryPoint(raw: StationReadingHistoryRaw): StationReadingHistoryPoint | null {
-  if (!Number.isFinite(raw.value) || raw.value < 0) return null;
+  const result = classifyAqiOrNull(raw.value);
+  if (result === null) return null;
 
-  const { category, pm25 } = classifyAqi(raw.value);
-  return { measuredAt: raw.measuredAt, pm25, aqiCategory: category };
+  return { measuredAt: raw.measuredAt, pm25: result.pm25, aqiCategory: result.category };
 }
 
 // No truncation/bucketing — mcp-tools.md's "no raw large arrays" rule explicitly exempts

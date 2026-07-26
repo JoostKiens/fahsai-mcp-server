@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import type { FahsaiClient } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
-import { classifyAqi, type AqiCategory } from './aqi.js';
+import { classifyAqiOrNull, type AqiCategory } from './aqi.js';
 
 export interface StationReadingsToolDeps {
   readonly client: FahsaiClient;
@@ -49,16 +49,10 @@ export interface StationReadingsSummary {
   readonly note?: string;
 }
 
-// `classifyAqi` throws for a non-finite or negative pm25 — a real possibility here since
-// fahsai-client does no runtime validation on the API's JSON body (client.ts casts it
-// straight to T), so nothing guarantees every station's `value` is well-formed. Returns
-// null instead of throwing, so one malformed reading doesn't abort the whole response —
-// mirrors fires.ts's toFireConfidence, which maps unexpected input to null rather than
-// throwing.
 function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSummary | null {
-  if (!Number.isFinite(raw.value) || raw.value < 0) return null;
+  const result = classifyAqiOrNull(raw.value);
+  if (result === null) return null;
 
-  const { category, pm25 } = classifyAqi(raw.value);
   const summary: StationReadingSummary = {
     stationId: raw.stationId,
     stationName: raw.stationName,
@@ -66,8 +60,8 @@ function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSu
     lng: raw.lng,
     country: raw.country,
     measuredAt: raw.measuredAt,
-    pm25,
-    aqiCategory: category,
+    pm25: result.pm25,
+    aqiCategory: result.category,
   };
   return raw.attribution !== undefined ? { ...summary, attribution: raw.attribution } : summary;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyAqi } from './aqi.js';
+import { classifyAqi, classifyAqiOrNull } from './aqi.js';
 
 describe('classifyAqi', () => {
   it('classifies Good (0–12.0)', () => {
@@ -52,5 +52,23 @@ describe('classifyAqi', () => {
 
   it('throws RangeError for negative pm25', () => {
     expect(() => classifyAqi(-1)).toThrow(RangeError);
+  });
+});
+
+describe('classifyAqiOrNull', () => {
+  it('returns the same result as classifyAqi for a valid value', () => {
+    expect(classifyAqiOrNull(45)).toEqual(classifyAqi(45));
+  });
+
+  it('returns null instead of throwing for NaN', () => {
+    expect(classifyAqiOrNull(NaN)).toBeNull();
+  });
+
+  it('returns null instead of throwing for Infinity', () => {
+    expect(classifyAqiOrNull(Infinity)).toBeNull();
+  });
+
+  it('returns null instead of throwing for a negative value', () => {
+    expect(classifyAqiOrNull(-1)).toBeNull();
   });
 });
