@@ -1,32 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { FahsaiClient } from '../fahsai-client/client.js';
+import { fakeClient } from '../fahsai-client/client.fixtures.js';
 import { SMALL_FIRES } from '../logic/fires.fixtures.js';
-import type { PlaceResolver, ResolvedPlace } from '../place-resolver/index.js';
+import { fakePlaceResolver, fakeResolvedPlace } from '../place-resolver/place-resolver.fixtures.js';
 import { createGetFiresRangeHandler } from './get-fires-range.js';
-
-const CHIANG_MAI_BBOX = { west: 98.5, south: 18.3, east: 99.5, north: 19.3 };
-
-function fakePlaceResolver(resolve: PlaceResolver['resolve']): PlaceResolver {
-  return { resolve };
-}
-
-function fakeResolvedPlace(overrides: Partial<ResolvedPlace> = {}): ResolvedPlace {
-  return {
-    query: 'Chiang Mai',
-    matchedName: 'Chiang Mai, Thailand',
-    lat: 18.7883,
-    lng: 98.9853,
-    bbox: CHIANG_MAI_BBOX,
-    outsideCoverage: false,
-    otherMatchesCount: 0,
-    ...overrides,
-  };
-}
-
-function fakeClient(get: FahsaiClient['get']): FahsaiClient {
-  return { get };
-}
 
 describe('createGetFiresRangeHandler', () => {
   it('resolves, fetches the range endpoint, and summarizes on the happy path', async () => {
