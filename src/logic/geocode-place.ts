@@ -2,6 +2,8 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
 import type { PlaceResolver, ResolvedPlace } from '../place-resolver/index.js';
+import { bboxSchema } from '../schemas/location.js';
+import type { BoundingBox } from './bbox.js';
 
 export interface GeocodePlaceToolDeps {
   readonly placeResolver: PlaceResolver;
@@ -13,16 +15,9 @@ export interface GeocodePlaceSummary {
   readonly matchedName: string;
   readonly lat: number;
   readonly lng: number;
-  readonly bbox: { readonly west: number; readonly south: number; readonly east: number; readonly north: number };
+  readonly bbox: BoundingBox;
   readonly note?: string;
 }
-
-const bboxSchema = z.object({
-  west: z.number(),
-  south: z.number(),
-  east: z.number(),
-  north: z.number(),
-});
 
 export const geocodePlaceOutputSchema = z.object({
   matchedName: z.string(),

@@ -8,6 +8,7 @@ import {
   type GeocodePlaceToolResult,
 } from '../logic/geocode-place.js';
 import { buildToolError, buildToolResponse } from '../logic/tool-response.js';
+import { placeOutsideCoverageMessage } from '../schemas/location.js';
 
 // Deliberately not the shared `locationInput` fragment — this tool resolves a place, it
 // doesn't accept a bbox to resolve against (mcp-tools.md's "compose locationInput" rule
@@ -27,7 +28,7 @@ export function createGeocodePlaceHandler(deps: GeocodePlaceToolDeps) {
     }
 
     if (result.value.bbox === null) {
-      return buildToolError(`"${input.place}" is outside Fahsai's coverage area.`);
+      return buildToolError(placeOutsideCoverageMessage(input.place));
     }
 
     return buildToolResponse(toGeocodePlaceSummary({ ...result.value, bbox: result.value.bbox }));
