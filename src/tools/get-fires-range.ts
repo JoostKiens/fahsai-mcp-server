@@ -5,20 +5,20 @@ import { formatBboxParam } from '../logic/bbox.js';
 import {
   FIRES_RANGE_MAX_DAYS,
   FIRE_CONFIDENCE_VALUES,
-  buildFiresToolError,
   fetchAndSummarizeFires,
-  fireDateSchema,
   fireSummaryOutputSchema,
   validateFiresRange,
   type FireToolResult,
   type FiresToolDeps,
 } from '../logic/fires.js';
+import { buildToolError } from '../logic/tool-response.js';
+import { isoDateSchema } from '../schemas/date.js';
 import { locationInput, resolveLocationInput } from '../schemas/location.js';
 
 export const getFiresRangeInputSchema = z.object({
   ...locationInput.shape,
-  start: fireDateSchema,
-  end: fireDateSchema,
+  start: isoDateSchema,
+  end: isoDateSchema,
   confidence: z.array(z.enum(FIRE_CONFIDENCE_VALUES)).optional(),
 });
 
@@ -28,12 +28,12 @@ export function createGetFiresRangeHandler(deps: FiresToolDeps) {
   return async (input: GetFiresRangeInput): Promise<FireToolResult> => {
     const rangeCheck = validateFiresRange(input.start, input.end);
     if (!rangeCheck.ok) {
-      return buildFiresToolError(rangeCheck.error);
+      return buildToolError(rangeCheck.error);
     }
 
     const locationResult = await resolveLocationInput(input, deps.placeResolver);
     if (!locationResult.ok) {
-      return buildFiresToolError(locationResult.error.message);
+      return buildToolError(locationResult.error.message);
     }
 
     const { bbox, note: locationNote } = locationResult.value;
