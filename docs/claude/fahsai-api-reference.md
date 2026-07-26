@@ -40,7 +40,9 @@ GET /api/stations/:stationId/baseline
   → get_station_baseline
 
 GET /api/stations?bbox=...
-  All stations with available parameters.
+  All stations, wrapped as { data: [...] }. See the corrected Station shape below — VERIFIED
+  2026-07-26 (JOO-33); this section previously claimed a bare array and isMobile/isMonitor/
+  parameters fields that don't exist on any live station.
   → get_stations
 
 GET /api/weather?date=YYYY-MM-DD&bbox=...
@@ -138,7 +140,14 @@ interface StationReadingHistory {
   measuredAt: string; // ISO 8601
 }
 
-// What /api/stations returns (array of):
+// What /api/stations returns — VERIFIED 2026-07-26 (JOO-33) against the live API (1000+
+// stations sampled across the full SEA bbox and a smaller central-Thailand bbox). Two things
+// this doc previously got wrong: the response is wrapped as { data: Station[] }, not a bare
+// array; and there is no isMobile, isMonitor, or parameters field on any live station — those
+// were never real. A no-match bbox is a 200 with an empty `data` array, not a 404.
+interface StationsApiResponse {
+  data: Station[];
+}
 interface Station {
   id: string;
   name: string;
@@ -146,9 +155,6 @@ interface Station {
   lng: number;
   country: string;
   provider: string | null;
-  isMobile: boolean;   // flag distinctly — a mobile station's location isn't fixed
-  isMonitor: boolean | null;
-  parameters: string[];
 }
 
 // What /api/stations/:id/history returns — VERIFIED 2026-07-26 (JOO-32) against the live API.
