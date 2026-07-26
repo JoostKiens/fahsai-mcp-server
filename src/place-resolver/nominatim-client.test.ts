@@ -97,6 +97,46 @@ describe('createNominatimClient', () => {
     expect(result.error.message).toContain('ENOTFOUND');
   });
 
+  it('types a non-array response body as a nominatim-error', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.resolve({ error: 'Unable to geocode' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = createNominatimClient();
+    const result = await client.search('???');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('Expected error result');
+    expect(result.error.kind).toBe('nominatim-error');
+    expect(result.error.message).toContain('non-array');
+  });
+
+  it('drops malformed entries while keeping valid matches in the same response', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () =>
+        Promise.resolve([
+          { lat: 'not-a-number', lon: '98.9853', display_name: 'Malformed Entry' },
+          { lat: '18.7883', lon: '98.9853', display_name: 'Chiang Mai, Thailand' },
+        ]),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = createNominatimClient();
+    const result = await client.search('Chiang Mai');
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('Expected success result');
+    expect(result.value).toHaveLength(1);
+    expect(result.value[0].display_name).toBe('Chiang Mai, Thailand');
+  });
+
   it('serializes back-to-back requests at least 1 second apart', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue({

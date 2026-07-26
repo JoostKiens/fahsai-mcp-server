@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { NominatimClient } from './nominatim-client.js';
 import { createPlaceResolver } from './resolver.js';
@@ -8,6 +8,24 @@ function fakeNominatimClient(searchImpl: NominatimClient['search']): NominatimCl
 }
 
 describe('createPlaceResolver', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('converts cacheTtlSeconds to milliseconds so the cache expires at ~1 second, not ~1ms or never', async () => {
+    vi.useFakeTimers();
+    const search = vi
+      .fn()
+      .mockResolvedValue({ ok: true, value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }] });
+    const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search), cacheTtlSeconds: 1 });
+
+    await resolver.resolve('Bangkok');
+    vi.advanceTimersByTime(1001);
+    await resolver.resolve('Bangkok');
+
+    expect(search).toHaveBeenCalledTimes(2);
+  });
+
   it('resolves a single match to lat/lng and a clamped bbox', async () => {
     const search = vi
       .fn()

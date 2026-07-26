@@ -70,9 +70,9 @@ export function createNominatimClient(): NominatimClient {
       };
     }
 
+    let body: unknown;
     try {
-      const matches = (await response.json()) as NominatimMatch[];
-      return { ok: true, value: matches };
+      body = await response.json();
     } catch {
       return {
         ok: false,
@@ -82,7 +82,29 @@ export function createNominatimClient(): NominatimClient {
         },
       };
     }
+
+    if (!Array.isArray(body)) {
+      return {
+        ok: false,
+        error: { kind: 'nominatim-error', message: 'Nominatim returned a non-array response body.' },
+      };
+    }
+
+    const matches = body.filter(isValidNominatimMatch);
+    return { ok: true, value: matches };
   }
 
   return { search };
+}
+
+function isValidNominatimMatch(match: unknown): match is NominatimMatch {
+  if (typeof match !== 'object' || match === null) {
+    return false;
+  }
+  const candidate = match as Record<string, unknown>;
+  return (
+    Number.isFinite(Number(candidate.lat)) &&
+    Number.isFinite(Number(candidate.lon)) &&
+    typeof candidate.display_name === 'string'
+  );
 }
