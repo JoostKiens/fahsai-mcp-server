@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
 import { buildToolError, buildToolResponse } from './tool-response.js';
-import { parseWindDir, type WindDir } from './wind.js';
+import { parseWindDirOrNull, type WindDir } from './wind.js';
 
 // Bin size for the default (non-opt-in) response — lands the full SEA bbox (89,1,114,30,
 // ~25x29 degrees) at roughly 90 cells, coarse enough to read as a summary while still
@@ -53,7 +53,7 @@ export interface WeatherPoint {
   readonly lat: number;
   readonly lng: number;
   readonly windSpeedKmh: number;
-  readonly wind: WindDir;
+  readonly wind: WindDir | null;
   readonly precipitationSumMm: number;
   readonly relativeHumidity2m: number;
 }
@@ -98,13 +98,19 @@ export function aggregateWeatherPoints(points: readonly WeatherGridPointRaw[]): 
   const vMean = vSum / n;
   const windSpeedKmh = Math.sqrt(uMean * uMean + vMean * vMean);
   const fromDeg = ((Math.atan2(-uMean, -vMean) * 180) / Math.PI + 360) % 360;
+  // A single non-finite wind_speed_kmh/wind_direction_deg among `points` (a malformed
+  // upstream reading — fahsai-client does no runtime validation on the JSON body) propagates
+  // through the sums above as NaN. parseWindDirOrNull, not parseWindDir, so that degrades this
+  // aggregate to null rather than throwing and aborting the whole (possibly default,
+  // non-opt-in) response.
+  const wind = parseWindDirOrNull(fromDeg);
 
   return {
     lat: latSum / n,
     lng: lngSum / n,
     pointCount: n,
-    windSpeedKmh,
-    wind: parseWindDir(fromDeg),
+    windSpeedKmh: wind !== null ? windSpeedKmh : null,
+    wind,
     precipitationSumMm: precipSum / n,
     relativeHumidity2m: humiditySum / n,
   };
@@ -129,7 +135,9 @@ function toWeatherPoint(raw: WeatherGridPointRaw): WeatherPoint {
     lat: raw.lat,
     lng: raw.lng,
     windSpeedKmh: raw.wind_speed_kmh,
-    wind: parseWindDir(raw.wind_direction_deg),
+    // parseWindDirOrNull, not parseWindDir directly — a non-finite wind_direction_deg from an
+    // unvalidated JSON body would otherwise throw and abort the whole get_weather call.
+    wind: parseWindDirOrNull(raw.wind_direction_deg),
     precipitationSumMm: raw.precipitation_sum,
     relativeHumidity2m: raw.relative_humidity_2m,
   };
@@ -203,7 +211,7 @@ const weatherPointOutputSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   windSpeedKmh: z.number(),
-  wind: windOutputSchema,
+  wind: windOutputSchema.nullable(),
   precipitationSumMm: z.number(),
   relativeHumidity2m: z.number(),
 });
@@ -238,5 +246,10 @@ export async function fetchAndSummarizeWeather(
     return buildToolError(fetchResult.error.message);
   }
 
-  return buildToolResponse(summarizeWeather(fetchResult.value.data, includeRawPoints), locationNote);
+  // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against a
+  // malformed success body (e.g. a bare `null`, or a `data` field that's missing/renamed)
+  // instead of letting `.data` access or downstream array methods throw.
+  const data = Array.isArray(fetchResult.value?.data) ? fetchResult.value.data : [];
+
+  return buildToolResponse(summarizeWeather(data, includeRawPoints), locationNote);
 }

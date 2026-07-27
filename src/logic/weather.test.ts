@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { aggregateWeatherPoints, emptyWeatherSummary, summarizeWeather, WEATHER_RAW_POINTS_MAX } from './weather.js';
 import {
   EMPTY_WEATHER_POINTS,
+  fakeWeatherPoint,
   LARGE_WEATHER_GRID,
+  MALFORMED_WIND_POINT,
   TWO_CELL_POINTS,
   TWO_POINTS_SAME_DIRECTION,
 } from './weather.fixtures.js';
@@ -31,6 +33,17 @@ describe('aggregateWeatherPoints', () => {
     expect(aggregate.precipitationSumMm).toBeNull();
     expect(aggregate.relativeHumidity2m).toBeNull();
   });
+
+  it('degrades to a null wind/windSpeedKmh (never throws) when a point has a non-finite wind_direction_deg', () => {
+    const points = [fakeWeatherPoint(), MALFORMED_WIND_POINT];
+
+    expect(() => aggregateWeatherPoints(points)).not.toThrow();
+    const aggregate = aggregateWeatherPoints(points);
+    expect(aggregate.wind).toBeNull();
+    expect(aggregate.windSpeedKmh).toBeNull();
+    // Fields independent of the wind computation are unaffected.
+    expect(aggregate.pointCount).toBe(2);
+  });
 });
 
 describe('summarizeWeather', () => {
@@ -53,7 +66,15 @@ describe('summarizeWeather', () => {
 
     expect(summary.rawPoints).toHaveLength(4);
     expect(summary.rawPointsTruncated).toBe(false);
-    expect(summary.rawPoints?.[0].wind.fromLabel).toBeDefined();
+    expect(summary.rawPoints?.[0].wind?.fromLabel).toBeDefined();
+  });
+
+  it('surfaces a null wind (never throws) for a raw point with a non-finite wind_direction_deg', () => {
+    const points = [MALFORMED_WIND_POINT];
+
+    expect(() => summarizeWeather(points, true)).not.toThrow();
+    const summary = summarizeWeather(points, true);
+    expect(summary.rawPoints?.[0].wind).toBeNull();
   });
 
   it('stride-samples and truncates rawPoints above the cap, with a note', () => {

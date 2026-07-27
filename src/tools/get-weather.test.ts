@@ -104,6 +104,19 @@ describe('createGetWeatherHandler', () => {
     expect(structured.rawPoints).toHaveLength(2);
   });
 
+  it('treats a malformed (non-object) success body as an empty result rather than throwing', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: null });
+    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    const result = await handler({ place: 'Chiang Mai', date: '2026-04-18' });
+
+    expect(result.isError).toBeUndefined();
+    const structured = result.structuredContent as { total: number; cells: unknown[] };
+    expect(structured.total).toBe(0);
+    expect(structured.cells).toEqual([]);
+  });
+
   it('rejects a missing date at the schema level', () => {
     const parsed = getWeatherInputSchema.safeParse({ place: 'Chiang Mai' });
     expect(parsed.success).toBe(false);

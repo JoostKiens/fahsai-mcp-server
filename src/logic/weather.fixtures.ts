@@ -14,6 +14,11 @@ export function fakeWeatherPoint(overrides: Partial<WeatherGridPointRaw> = {}): 
 
 export const EMPTY_WEATHER_POINTS: readonly WeatherGridPointRaw[] = [];
 
+// A non-finite wind_direction_deg — a malformed upstream reading fahsai-client's unvalidated
+// JSON cast can't catch. Used to verify aggregation/point-mapping degrades to a null wind
+// instead of throwing (parseWindDir would throw on this; parseWindDirOrNull must not).
+export const MALFORMED_WIND_POINT: WeatherGridPointRaw = fakeWeatherPoint({ wind_direction_deg: NaN });
+
 // Two points, same cell (well within WEATHER_CELL_SIZE_DEG of each other), both blowing
 // from due east (90 deg) at different speeds — same-direction vectors average cleanly, so
 // the aggregate should land on exactly 90 deg / the arithmetic mean speed. Used to
