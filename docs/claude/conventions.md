@@ -39,7 +39,7 @@ SOLID was written for class-based OOP. Applied here:
 | Principle                 | What it means in this codebase                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Single Responsibility** | One function does one thing. A tool handler orchestrates (validate → resolve → fetch → summarize → respond); it does not itself contain summarization math — that's a separate, separately-testable function. One module = one concern (e.g. `fahsai-client` only knows HTTP + error typing; it has no idea what a "fire summary" is).                                                |
-| **Open/Closed**           | Extend behavior by adding data or new functions, not by editing existing ones. A new AQI category threshold is a new entry in `logic/aqi.ts`'s breakpoint table, not a new `if` branch scattered through tool logic. A new tool is a new file in `tools/`, not a new parameter on an existing tool that changes its behavior.                                                                                       |
+| **Open/Closed**           | Extend behavior by adding data or new functions, not by editing existing ones. A new AQI category threshold is a new entry in `shared/aqi.ts`'s breakpoint table, not a new `if` branch scattered through tool logic. A new tool is a new folder in `tools/`, not a new parameter on an existing tool that changes its behavior.                                                                                       |
 | **Liskov Substitution**   | Applies loosely to our `Result`/interface shapes: anything implementing a given `Result<T, E>` shape or a given tool-input type must be usable anywhere that shape is expected, with no surprising special cases. If a function claims to return `Result<Summary, FahsaiError>`, every caller should be able to treat any success value identically — no hidden variants that need different handling. |
 | **Interface Segregation** | Each tool's Zod input schema includes only what *that tool* needs. Don't create one shared "mega-schema" with optional fields for every tool's parameters — `get_cams`'s schema has no business knowing about `confidence` (a `get_fires`-only filter).                                                                                                                                     |
 | **Dependency Inversion**  | Tool logic depends on the `fahsai-client`, `place-resolver`, and `cache` *interfaces* (function signatures / injected dependencies), not on concrete implementations reaching out to global singletons. This is what makes unit testing with mocked FahSai/Nominatim responses (see `mcp-tools.md`) possible without a mocking framework that reaches into module internals.                                                   |
@@ -53,7 +53,7 @@ SOLID was written for class-based OOP. Applied here:
 
 ## Zod schemas
 
-- One schema per tool, colocated with that tool's file.
+- One `schema.ts` per tool, colocated in that tool's own folder (`tools/<name>/schema.ts`) — input and output schema together, no business logic.
 - Validate at the boundary only — once a tool's handler has a validated, typed input, internal logic works with plain TypeScript types, not `z.infer<>` sprinkled everywhere downstream.
 - Enum fields (e.g. fire `confidence`) validate against a single shared list of valid values — never hardcode a duplicate list of valid values in a schema.
 
@@ -73,10 +73,11 @@ We use [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | Scope            | Covers                                                                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `scaffolding`    | Project skeleton, transports (STDIO), build/tooling config, env setup                                            |
-| `client`         | FahSai API HTTP client, error typing                                                                             |
-| `place-resolver` | Nominatim geocoding, the place→bbox resolver, its in-process cache and throttling                                |
+| `client`         | FahSai API HTTP client, error typing (`src/shared/fahsai-client/`)                                                |
+| `place-resolver` | Nominatim geocoding, the place→bbox resolver, its in-process cache and throttling (`src/shared/place-resolver/`)  |
 | `cache`          | The generic `Cache<K,V>` TTL cache                                                                                |
-| `tools`          | Any MCP tool logic (`src/tools/*`) — use a sub-scope like `tools/get_weather` if a commit touches only one tool |
+| `shared`         | Cross-tool logic under `src/shared/` not covered by a more specific scope above (`aqi.ts`, `wind.ts`, `bbox.ts`, `shared/fires/`, ...) |
+| `tools`          | Any MCP tool logic (`src/tools/<name>/`) — use a sub-scope like `tools/get_weather` if a commit touches only one tool |
 | `docs`           | README, CLAUDE.md, `docs/claude/*`                                                                               |
 | `tests`          | Unit tests, fixtures, live smoke tests, MCP conformance tests                                                    |
 | `release`        | Versioning, npm publish, CI/CD, GitHub repo setup                                                                |
@@ -102,12 +103,12 @@ Follow `gfw-mcp-server`'s `Result`-over-exceptions pattern for anything the Fahs
 
 ## Module boundaries
 
-Tool files (`src/tools/*.ts`) stay thin: schema + orchestration only. Any logic reused by two or more tools moves to `src/logic/`, `src/place-resolver/`, or `src/fahsai-client/` as appropriate — see `mcp-tools.md`'s "where does this belong" section. A tool file that's grown a large private helper function is a signal that helper probably wants to live in `logic/` even if only one tool currently uses it, if the logic is domain knowledge (AQI, wind, fire summarization) rather than this-tool-specific glue.
+Each tool's `index.ts` stays thin: registration only, wiring `schema.ts` + `handler.ts` into `server.registerTool(...)`. Any logic reused by two or more tools moves to `src/shared/` — a flat file for a small utility, its own `shared/<name>/schema.ts` + `handler.ts` folder for a meatier shared domain module (see `shared/fires/`) — as appropriate; see `mcp-tools.md`'s "where does this belong" section. This is enforced, not just conventional: ESLint's `import-x/no-restricted-paths` fails the build on `shared/*` importing from `tools/*`, or one tool importing from another tool's folder. A tool's `handler.ts` that's grown a large private helper function is *not* automatically a signal to promote it to `shared/` — per JOO-43's rule of thumb, logic stays in a tool's own folder as long as exactly one tool uses it, however large; it only moves once a second tool needs it.
 
 ## Naming
 
-- Tool names: `snake_case`, verb-first (`get_fires`, `geocode_place`) — matches both `fahsai`'s route naming and `gfw-mcp-server`'s tool naming.
-- Shared schema fragments: `camelCase` exports from `src/schemas/` (e.g. `locationInput`).
+- Tool names: `snake_case`, verb-first (`get_fires`, `geocode_place`) — matches both `fahsai`'s route naming and `gfw-mcp-server`'s tool naming. The folder under `src/tools/` uses the same name in kebab-case (`get-fires/`, `geocode-place/`).
+- Shared schema fragments: `camelCase` exports from `src/shared/schema/` (e.g. `locationInput`).
 
 ## Testing
 
