@@ -10,15 +10,27 @@ This matters for every decision below: we are not building a multi-tenant distri
 
 ```
 src/
-  index.ts               # STDIO entrypoint
-  tools/                   # one file per MCP tool — thin: schema + orchestration only
-  fahsai-client/            # HTTP client for Fahsai's public REST API (fetch wrapper, error typing)
-  place-resolver/            # Nominatim geocoding + place→bbox conversion, with in-process cache
-  logic/                       # shared pure functions: aqi.ts, wind.ts
-  schemas/                      # shared Zod fragments (locationInput, etc.)
+  index.ts               # STDIO entrypoint — imports and registers every tool
+  tools/
+    get-weather/            # one folder per MCP tool
+      index.ts                # registration: server.registerTool(name, {...}, handler)
+      schema.ts                # Zod input + output schema, and the plain types that mirror them
+      handler.ts                 # the tool's own orchestration/summarization logic
+      handler.test.ts              # unit tests (fixtures only, no network)
+      handler.fixtures.ts            # shared test fixtures, if the tests need them
+    get-fires/, get-fires-range/, ...  # one such folder per registered tool — see mcp-tools.md
+  shared/
+    fahsai-client/            # HTTP client for Fahsai's public REST API (fetch wrapper, error typing)
+    place-resolver/            # Nominatim geocoding + place→bbox conversion, with in-process cache
+    schema/                       # shared Zod fragments used by >1 tool (locationInput, isoDateSchema)
+    fires/                          # domain logic genuinely shared by get_fires + get_fires_range
+    aqi.ts, wind.ts, bbox.ts,         # small single-file cross-cutting utilities, each used by
+    tool-response.ts, result.ts        # multiple tools or shared modules
 ```
 
-Each `tools/*.ts` file should be readable top-to-bottom: validate input → resolve location (place→bbox via `place-resolver`, or pass through a given bbox) → fetch (via `fahsai-client`) → summarize/classify (via `logic/`) → return. Summarization and classification logic lives in small pure functions, ideally in `logic/` or a co-located `*.logic.ts`, so it's unit-testable without mocking the MCP transport.
+Two-layer, colocated-per-tool structure (JOO-43): each tool owns its schema and handler in one folder; `shared/` holds only what's genuinely reused across tools. **Import boundaries are enforced by ESLint (`import-x/no-restricted-paths`), not just convention:** `shared/*` must never import from `tools/*`, and `tools/<a>/*` must never import from `tools/<b>/*` — if two tools need the same thing, promote it into `shared/` instead of reaching across. The rule of thumb for where logic lives: if it's used by exactly one tool, it stays in that tool's own folder (even if it's meaty, like `get-station-baseline/handler.ts`); it only moves to `shared/` once a second tool needs it (like `shared/fires/`, used by both fire tools). See `mcp-tools.md` for the full checklist when adding or changing a tool.
+
+Each tool's `handler.ts` should be readable top-to-bottom: validate input → resolve location (place→bbox via `shared/place-resolver/`, or pass through a given bbox, via `shared/resolve-location.ts`) → fetch (via `shared/fahsai-client/`) → summarize/classify (using `shared/aqi.ts`/`shared/wind.ts` or the tool's own logic) → return. Summarization and classification logic lives in small pure functions inside `handler.ts` (or a shared module, once reused), so it's unit-testable without mocking the MCP transport.
 
 ## Data flow: a typical tool call
 
@@ -38,7 +50,7 @@ MCP tool call
   → return structured response
 ```
 
-Tools touching PM2.5 or wind values additionally pipe those fields through `logic/aqi.ts` / `logic/wind.ts` before returning — see `mcp-tools.md` for the checklist this implies for every tool.
+`get_fires`'s summarization logic actually lives in `shared/fires/handler.ts`, not inside the `get-fires/` tool folder — it's shared with `get_fires_range` (see Directory structure above). Tools touching PM2.5 or wind values additionally pipe those fields through `shared/aqi.ts` / `shared/wind.ts` before returning — see `mcp-tools.md` for the checklist this implies for every tool.
 
 ## The place resolver (why it exists, and why Nominatim)
 
@@ -53,11 +65,11 @@ The resolver:
 4. Clamps the result to Fahsai's data bbox (`89,1,114,30`). A place outside Southeast Asia resolves successfully as a *location* but returns an explicit "outside Fahsai's coverage area" note rather than a bbox that silently yields empty results from every downstream tool.
 5. On multiple plausible matches, returns the top match plus a note that other matches existed — never silently guesses with no signal back to the caller.
 
-## Reused logic (`logic/`)
+## Reused logic (`shared/`)
 
-**`aqi.ts`** — classifies a raw PM2.5 µg/m³ value into the EPA category Fahsai's frontend already uses (Good/Moderate/Unhealthy for Sensitive Groups/Unhealthy/Very Unhealthy/Hazardous), step-function only (no need for the frontend's lerped-gradient variant, which exists purely for a smooth chart line). This is the project's "deterministic interpretation in code, not delegated to the LLM" principle applied to air quality specifically — every tool returning a PM2.5 number attaches its category.
+**`shared/aqi.ts`** — classifies a raw PM2.5 µg/m³ value into the EPA category Fahsai's frontend already uses (Good/Moderate/Unhealthy for Sensitive Groups/Unhealthy/Very Unhealthy/Hazardous), step-function only (no need for the frontend's lerped-gradient variant, which exists purely for a smooth chart line). This is the project's "deterministic interpretation in code, not delegated to the LLM" principle applied to air quality specifically — every tool returning a PM2.5 number attaches its category.
 
-**`wind.ts`** — a direct port of Fahsai's `parseWindDir`: given a meteorological `directionDeg` (0°=N, always the direction wind is coming **FROM**), returns `{ fromLabel, toLabel, fromQuadrant, toQuadrant }`. Never apply `+ 180` at a call site — this exact bug shipped twice on the Fahsai frontend (see its `conventions.md`) precisely because the correct logic wasn't centralized. It is here, and nowhere else in this repo should compute a compass label from `directionDeg` directly.
+**`shared/wind.ts`** — a direct port of Fahsai's `parseWindDir`: given a meteorological `directionDeg` (0°=N, always the direction wind is coming **FROM**), returns `{ fromLabel, toLabel, fromQuadrant, toQuadrant }`. Never apply `+ 180` at a call site — this exact bug shipped twice on the Fahsai frontend (see its `conventions.md`) precisely because the correct logic wasn't centralized. It is here, and nowhere else in this repo should compute a compass label from `directionDeg` directly.
 
 ## Transports
 

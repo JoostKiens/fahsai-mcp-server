@@ -1,17 +1,17 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-import { createFahsaiClient } from './fahsai-client/client.js';
-import { createPlaceResolver } from './place-resolver/index.js';
-import { registerGeocodePlace } from './tools/geocode-place.js';
-import { registerGetFires } from './tools/get-fires.js';
-import { registerGetFiresRange } from './tools/get-fires-range.js';
-import { registerGetStationBaseline } from './tools/get-station-baseline.js';
-import { registerGetStationHistory } from './tools/get-station-history.js';
-import { registerGetStationReadings } from './tools/get-station-readings.js';
-import { registerGetStationReadingsHistory } from './tools/get-station-readings-history.js';
-import { registerGetStations } from './tools/get-stations.js';
-import { registerGetWeather } from './tools/get-weather.js';
+import { createFahsaiClient } from './shared/fahsai-client/client.js';
+import { createPlaceResolver } from './shared/place-resolver/index.js';
+import { registerGeocodePlace } from './tools/geocode-place/index.js';
+import { registerGetFires } from './tools/get-fires/index.js';
+import { registerGetFiresRange } from './tools/get-fires-range/index.js';
+import { registerGetStationBaseline } from './tools/get-station-baseline/index.js';
+import { registerGetStationHistory } from './tools/get-station-history/index.js';
+import { registerGetStationReadings } from './tools/get-station-readings/index.js';
+import { registerGetStationReadingsHistory } from './tools/get-station-readings-history/index.js';
+import { registerGetStations } from './tools/get-stations/index.js';
+import { registerGetWeather } from './tools/get-weather/index.js';
 
 const server = new McpServer({ name: 'fahsai-mcp-server', version: '0.1.0' });
 

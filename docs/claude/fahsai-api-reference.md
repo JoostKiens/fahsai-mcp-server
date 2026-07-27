@@ -93,7 +93,7 @@ GET /health
 //      full word — this server maps it to 'low' | 'nominal' | 'high' before returning it.
 // Also verified: the `confidence` query param has no observed server-side filtering effect
 // (identical results whether passed as words, letter codes, or omitted) — this server
-// filters client-side instead (see src/logic/fires.ts's filterByConfidence).
+// filters client-side instead (see src/shared/fires/handler.ts's filterByConfidence).
 interface FirePoint {
   id: number;
   detectedAt: string;        // ISO 8601
@@ -121,7 +121,7 @@ interface StationReadingLatest {
   lat: number;
   lng: number;
   country: string;
-  value: number; // pm25 µg/m³ — pipe through logic/aqi.ts before returning
+  value: number; // pm25 µg/m³ — pipe through shared/aqi.ts before returning
   measuredAt: string; // ISO 8601
   attribution?: unknown; // never observed live; pass through opaquely when present
 }
@@ -136,7 +136,7 @@ interface StationReadingLatest {
 // the API gives no way to distinguish the two.
 interface StationReadingHistory {
   stationId: string;
-  value: number; // pm25 µg/m³ — pipe through logic/aqi.ts before returning
+  value: number; // pm25 µg/m³ — pipe through shared/aqi.ts before returning
   measuredAt: string; // ISO 8601
 }
 
@@ -175,7 +175,7 @@ interface StationDayHistory {
   readingCount: number;
   weather: {
     windSpeedKmh: number | null;
-    windDirectionDeg: number | null; // pipe through logic/wind.ts — never surface raw
+    windDirectionDeg: number | null; // pipe through shared/wind.ts — never surface raw
     precipitationSumMm: number | null;
     relativeHumidity2m: number | null;
   } | null;
@@ -221,7 +221,7 @@ interface PM25GridPoint {
 
 ## AQI thresholds (US EPA, from `fahsai`'s `docs/claude/frontend.md`)
 
-Raw PM2.5 µg/m³, not AQI index values. This is what `logic/aqi.ts` implements — don't reference this table directly in tool code, go through the shared module.
+Raw PM2.5 µg/m³, not AQI index values. This is what `shared/aqi.ts` implements — don't reference this table directly in tool code, go through the shared module.
 
 | Category                     | PM2.5 µg/m³ |
 | ---------------------------- | ----------- |
@@ -234,7 +234,7 @@ Raw PM2.5 µg/m³, not AQI index values. This is what `logic/aqi.ts` implements 
 
 ## Wind direction convention (from `fahsai`'s `docs/claude/conventions.md`)
 
-`directionDeg` is always the direction wind is coming **FROM**. Never apply `+ 180` to produce a display label — that's the TO direction, and it's non-standard for a "from" label even though it looks visually correct next to a particle animation. This exact mistake shipped twice on the Fahsai frontend before being centralized into `parseWindDir`. This server's `logic/wind.ts` is the equivalent centralization here.
+`directionDeg` is always the direction wind is coming **FROM**. Never apply `+ 180` to produce a display label — that's the TO direction, and it's non-standard for a "from" label even though it looks visually correct next to a particle animation. This exact mistake shipped twice on the Fahsai frontend before being centralized into `parseWindDir`. This server's `shared/wind.ts` is the equivalent centralization here.
 
 ## Known upstream gotchas worth carrying over
 
