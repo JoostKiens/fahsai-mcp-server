@@ -32,6 +32,8 @@ Two-layer, colocated-per-tool structure (JOO-43): each tool owns its schema and 
 
 Each tool's `handler.ts` should be readable top-to-bottom: validate input → resolve location (place→bbox via `shared/place-resolver/`, or pass through a given bbox, via `shared/resolve-location.ts`) → fetch (via `shared/fahsai-client/`) → summarize/classify (using `shared/aqi.ts`/`shared/wind.ts` or the tool's own logic) → return. Summarization and classification logic lives in small pure functions inside `handler.ts` (or a shared module, once reused), so it's unit-testable without mocking the MCP transport.
 
+Each tool folder's schema.ts holds only the Zod-validated input/output contract; any other type used solely within that tool (e.g. a ToolDeps dependency-injection shape) lives next to the code that consumes it — typically handler.ts — and is imported by index.ts as needed.
+
 ## Data flow: a typical tool call
 
 Using `get_fires` as the representative case:
