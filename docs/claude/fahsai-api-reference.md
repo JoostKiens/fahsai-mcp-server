@@ -192,12 +192,23 @@ interface StationBaselineApiResponse {
   maxYear: number | null;
 }
 
-// What /api/weather returns (array of):
-interface WindVector {
+// What /api/weather returns — CORRECTED 2026-07-27 (JOO-34) against the live API (bbox
+// 89,1,114,30, full grid sampled). Two things this doc previously got wrong: the response
+// is wrapped as { data: WeatherGridPointRaw[] }, not a bare array; and the fields are
+// snake_case, not speedKmh/directionDeg — plus two fields (relative_humidity_2m,
+// precipitation_sum) that weren't documented at all. Grid size observed: exactly 4,599
+// points for the full SEA bbox — the same ceiling documented for /api/cams, so this route
+// is subject to CLAUDE.md's "no raw large arrays" constraint just as much as CAMS is.
+interface WeatherApiResponse {
+  data: WeatherGridPointRaw[];
+}
+interface WeatherGridPointRaw {
   lat: number;
   lng: number;
-  speedKmh: number;
-  directionDeg: number; // meteorological: 0=N, 90=E, 180=S, 270=W — FROM direction
+  wind_speed_kmh: number;
+  wind_direction_deg: number; // meteorological: 0=N, 90=E, 180=S, 270=W — FROM direction
+  relative_humidity_2m: number;
+  precipitation_sum: number; // mm
 }
 
 // What /api/cams returns (array of):
