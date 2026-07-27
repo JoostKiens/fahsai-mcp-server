@@ -11,7 +11,12 @@ import {
   emptyCamsSummary,
   summarizeCams,
 } from './handler.js';
-import { EMPTY_CAMS_GRID, FULL_CAMS_GRID, SMALL_AREA_CAMS_GRID } from './handler.fixtures.js';
+import {
+  EMPTY_CAMS_GRID,
+  FULL_CAMS_GRID,
+  GRID_WITH_INVALID_READING,
+  SMALL_AREA_CAMS_GRID,
+} from './handler.fixtures.js';
 import { CAMS_GRID_MAX } from './schema.js';
 
 describe('computeAreaSummary', () => {
@@ -33,6 +38,15 @@ describe('computeAreaSummary', () => {
     expect(summary.mean).toEqual({ pm25: null, aqiCategory: null });
     expect(summary.median).toEqual({ pm25: null, aqiCategory: null });
     expect(summary.p95).toEqual({ pm25: null, aqiCategory: null });
+  });
+
+  it('excludes an out-of-coverage null cell from the stats instead of coercing it to 0', () => {
+    const summary = computeAreaSummary(GRID_WITH_INVALID_READING.pm25s);
+
+    expect(summary.pointCount).toBe(2); // the null cell is excluded, not counted
+    expect(summary.mean).toEqual({ pm25: 15, aqiCategory: 'Moderate' }); // mean of 10, 20 — not (10+0+20)/3
+    expect(summary.median).toEqual({ pm25: 10, aqiCategory: 'Good' });
+    expect(summary.p95).toEqual({ pm25: 20, aqiCategory: 'Moderate' });
   });
 });
 
@@ -78,6 +92,32 @@ describe('summarizeCams', () => {
     expect(summary.total).toBe(4599);
     expect(summary.grid).toBeUndefined();
     expect(summary.summary.pointCount).toBe(4599);
+  });
+
+  it('notes how many grid points were excluded from the area summary due to invalid readings', () => {
+    const summary = summarizeCams(GRID_WITH_INVALID_READING, false);
+
+    expect(summary.total).toBe(3); // the raw grid still has 3 points
+    expect(summary.summary.pointCount).toBe(2); // only 2 fed into the stats
+    expect(summary.note).toBe(
+      '1 grid point(s) had no valid PM2.5 reading and were excluded from the area summary.',
+    );
+  });
+
+  it('combines the omitted-reading note with the truncation note when both apply', () => {
+    const largeGridWithInvalidReading = {
+      lats: [...FULL_CAMS_GRID.lats, 13],
+      lngs: [...FULL_CAMS_GRID.lngs, 100],
+      pm25s: [...FULL_CAMS_GRID.pm25s, null as unknown as number],
+    };
+
+    const summary = summarizeCams(largeGridWithInvalidReading, true);
+
+    expect(summary.gridTruncated).toBe(true);
+    expect(summary.note).toBe(
+      '1 grid point(s) had no valid PM2.5 reading and were excluded from the area summary. ' +
+        `Showing ${CAMS_GRID_MAX} of 4600 grid points (evenly, spatially sampled).`,
+    );
   });
 });
 

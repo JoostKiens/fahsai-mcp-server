@@ -11,6 +11,17 @@ export const SMALL_AREA_CAMS_GRID: CamsGridRaw = {
 
 export const EMPTY_CAMS_GRID: CamsGridRaw = { lats: [], lngs: [], pm25s: [] };
 
+// A grid with one out-of-coverage cell — Open-Meteo returns `null` for grid cells with no
+// model data (e.g. open ocean inside the bbox), which fahsai-client's unvalidated JSON cast
+// lets straight through despite the CamsGridRaw type saying `number`. Used to verify
+// computeAreaSummary excludes it from the area stats instead of letting it arithmetically
+// coerce to 0 and skew them.
+export const GRID_WITH_INVALID_READING: CamsGridRaw = {
+  lats: [13, 13, 13],
+  lngs: [100, 100.5, 101],
+  pm25s: [10, null as unknown as number, 20],
+};
+
 // Full nationwide grid — 4,599 points, matching the live point count for the default SEA
 // bbox (89,1,114,30), verified 2026-07-27 (JOO-35). Synthetic values — this fixture exercises
 // count-driven behavior (the 500-point cap, stride math, truncation note, spatial spread of

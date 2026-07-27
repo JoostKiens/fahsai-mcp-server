@@ -3,7 +3,7 @@ import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../../shared/fahsai-client/client.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
-import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
+import { buildToolError, buildToolResponse, combineNotes } from '../../shared/tool-response.js';
 import {
   CAMS_GRID_MAX,
   type CamsAreaSummary,
@@ -53,13 +53,23 @@ function percentile(sortedValues: readonly number[], p: number): number {
   return sortedValues[index];
 }
 
-// classifyAqiOrNull(NaN) already returns null, so an empty grid degrades every stat to
-// {pm25: null, aqiCategory: null} with no special-case empty check needed here.
+// Open-Meteo returns `null` for grid cells with no model data (e.g. open ocean inside the
+// bbox) — plain arithmetic would coerce that to 0 (`null + 10 === 10`, `null - 10 === -10`)
+// and silently pull the mean/median/p95 toward "Good" instead of excluding it. Filter through
+// the same validity check classifyAqi(OrNull) uses before aggregating, mirroring buildGrid's
+// per-point handling below.
+function isValidPm25(value: number): boolean {
+  return classifyAqiOrNull(value) !== null;
+}
+
+// classifyAqiOrNull(NaN) already returns null, so an all-invalid (or empty) grid degrades
+// every stat to {pm25: null, aqiCategory: null} with no special-case empty check needed here.
 export function computeAreaSummary(pm25s: readonly number[]): CamsAreaSummary {
-  const sorted = [...pm25s].sort((a, b) => a - b);
+  const valid = pm25s.filter(isValidPm25);
+  const sorted = [...valid].sort((a, b) => a - b);
   return {
-    pointCount: pm25s.length,
-    mean: statField(mean(pm25s)),
+    pointCount: valid.length,
+    mean: statField(mean(valid)),
     median: statField(percentile(sorted, 50)),
     p95: statField(percentile(sorted, 95)),
   };
@@ -99,18 +109,27 @@ export function summarizeCams(grid: CamsGridRaw, includeRawGrid: boolean): CamsS
   // unvalidated body can't index out of bounds.
   const n = Math.min(grid.lats.length, grid.lngs.length, grid.pm25s.length);
   const pm25s = grid.pm25s.slice(0, n);
+  const summary = computeAreaSummary(pm25s);
 
-  const base: CamsSummary = { total: n, summary: computeAreaSummary(pm25s) };
+  const omitted = n - summary.pointCount;
+  const omittedNote =
+    omitted > 0
+      ? `${omitted} grid point(s) had no valid PM2.5 reading and were excluded from the area summary.`
+      : undefined;
+
+  const base: CamsSummary = { total: n, summary, note: omittedNote };
   if (!includeRawGrid) return base;
 
   const { points, truncated } = buildGrid(grid, n, CAMS_GRID_MAX);
+  const truncationNote = truncated
+    ? `Showing ${CAMS_GRID_MAX} of ${n} grid points (evenly, spatially sampled).`
+    : undefined;
+
   return {
     ...base,
     grid: points,
     gridTruncated: truncated,
-    note: truncated
-      ? `Showing ${CAMS_GRID_MAX} of ${n} grid points (evenly, spatially sampled).`
-      : undefined,
+    note: combineNotes(omittedNote, truncationNote),
   };
 }
 
