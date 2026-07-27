@@ -17,21 +17,21 @@ import { getStationBaselineInputSchema } from './schema.js';
 
 describe('getSeason', () => {
   it('classifies Feb–Apr as peak_burning', () => {
-    expect(getSeason('2026-02-01T00:00:00Z')).toBe('peak_burning');
-    expect(getSeason('2026-03-15T00:00:00Z')).toBe('peak_burning');
-    expect(getSeason('2026-04-30T00:00:00Z')).toBe('peak_burning');
+    expect(getSeason(new Date('2026-02-01T00:00:00Z'))).toBe('peak_burning');
+    expect(getSeason(new Date('2026-03-15T00:00:00Z'))).toBe('peak_burning');
+    expect(getSeason(new Date('2026-04-30T00:00:00Z'))).toBe('peak_burning');
   });
 
   it('classifies Oct–Jan as early_dry', () => {
-    expect(getSeason('2026-10-01T00:00:00Z')).toBe('early_dry');
-    expect(getSeason('2026-12-25T00:00:00Z')).toBe('early_dry');
-    expect(getSeason('2026-01-15T00:00:00Z')).toBe('early_dry');
+    expect(getSeason(new Date('2026-10-01T00:00:00Z'))).toBe('early_dry');
+    expect(getSeason(new Date('2026-12-25T00:00:00Z'))).toBe('early_dry');
+    expect(getSeason(new Date('2026-01-15T00:00:00Z'))).toBe('early_dry');
   });
 
   it('classifies May–Sep as monsoon', () => {
-    expect(getSeason('2026-07-26T00:00:00Z')).toBe('monsoon');
-    expect(getSeason('2026-05-01T00:00:00Z')).toBe('monsoon');
-    expect(getSeason('2026-09-30T00:00:00Z')).toBe('monsoon');
+    expect(getSeason(new Date('2026-07-26T00:00:00Z'))).toBe('monsoon');
+    expect(getSeason(new Date('2026-05-01T00:00:00Z'))).toBe('monsoon');
+    expect(getSeason(new Date('2026-09-30T00:00:00Z'))).toBe('monsoon');
   });
 });
 

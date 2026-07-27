@@ -16,8 +16,8 @@ const SEASON_MONTHS: Record<Season, readonly number[]> = {
   monsoon: [5, 6, 7, 8, 9],
 };
 
-export function getSeason(date: string): Season {
-  const month = new Date(date).getUTCMonth() + 1;
+export function getSeason(date: Date): Season {
+  const month = date.getUTCMonth() + 1;
   if (month >= 2 && month <= 4) return 'peak_burning';
   if (month >= 10 || month <= 1) return 'early_dry';
   return 'monsoon';
@@ -111,7 +111,7 @@ export function summarizeStationBaselineDefault(
 
   const todayMonth = today.getUTCMonth() + 1;
   const todayDay = today.getUTCDate();
-  const season = getSeason(today.toISOString());
+  const season = getSeason(today);
   const seasonRows = data.filter((row) => SEASON_MONTHS[season].includes(row.month));
   const seasonMedians = seasonRows.map((row) => row.medianPm25);
 
