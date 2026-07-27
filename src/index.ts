@@ -4,6 +4,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createFahsaiClient } from './shared/fahsai-client/client.js';
 import { createPlaceResolver } from './shared/place-resolver/index.js';
 import { registerGeocodePlace } from './tools/geocode-place/index.js';
+import { registerGetCams } from './tools/get-cams/index.js';
+import { registerGetCamsSummary } from './tools/get-cams-summary/index.js';
 import { registerGetFires } from './tools/get-fires/index.js';
 import { registerGetFiresRange } from './tools/get-fires-range/index.js';
 import { registerGetStationBaseline } from './tools/get-station-baseline/index.js';
@@ -25,6 +27,8 @@ registerGetStationHistory(server, deps);
 registerGetStationBaseline(server, deps);
 registerGetStations(server, deps);
 registerGetWeather(server, deps);
+registerGetCams(server, deps);
+registerGetCamsSummary(server, deps);
 registerGeocodePlace(server, deps);
 
 await server.connect(new StdioServerTransport());

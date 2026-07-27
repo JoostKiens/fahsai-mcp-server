@@ -48,7 +48,7 @@ SOLID was written for class-based OOP. Applied here:
 
 - Function and variable names describe *what*, not *how* (`summarizeFireDetections`, not `processData`).
 - Keep functions small enough to read without scrolling — if a function has more than one clear "phase" (e.g. both "parse the FahSai response" and "compute totals"), split it.
-- No magic numbers/strings in tool logic — the 10-day limit on `get_fires_range`, the 130-day limit on `get_cams_summary`, and similar constants live in named exports (a `constants.ts`), not inlined in tool files.
+- No magic numbers/strings in tool logic — the 10-day limit on `get_fires_range`, the 139-day limit on `get_cams_summary`, and similar constants live in named exports (a `constants.ts`), not inlined in tool files.
 - Avoid deep nesting — prefer early returns (`Result`'s error branch checked first) over pyramided `if`/`else`.
 
 ## Zod schemas

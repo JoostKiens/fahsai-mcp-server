@@ -1,3 +1,4 @@
+import { validateDateRange } from '../date-range.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
 import type { Result } from '../result.js';
@@ -138,42 +139,11 @@ export function formatConfidenceParam(confidence?: readonly FireConfidence[]): s
   return confidence && confidence.length > 0 ? confidence.join(',') : undefined;
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function parseUtcDate(value: string): Date | null {
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return null;
-  // JS silently rolls over out-of-range days/months (e.g. "2026-02-30" -> March 2) instead
-  // of rejecting them — round-trip through ISO to catch that instead of trusting getTime().
-  return date.toISOString().slice(0, 10) === value ? date : null;
-}
-
-// Cross-field validation the MCP SDK's per-field inputSchema can't express — runs before
-// any network call, per the 10-day cap this server enforces client-side.
+// Thin wrapper preserving this tool's exact original signature — see shared/date-range.ts
+// for the actual parsing/rollover/day-count/cap logic, shared with get_cams_summary.
 export function validateFiresRange(start: string, end: string): Result<void, string> {
-  const startDate = parseUtcDate(start);
-  if (startDate === null) {
-    return { ok: false, error: `"${start}" is not a valid calendar date.` };
-  }
-
-  const endDate = parseUtcDate(end);
-  if (endDate === null) {
-    return { ok: false, error: `"${end}" is not a valid calendar date.` };
-  }
-
-  if (endDate.getTime() < startDate.getTime()) {
-    return { ok: false, error: '`end` must not be before `start`.' };
-  }
-
-  const days = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY);
-  if (days > FIRES_RANGE_MAX_DAYS) {
-    return {
-      ok: false,
-      error: `Date range spans ${days} days; get_fires_range allows a maximum of ${FIRES_RANGE_MAX_DAYS} days. Narrow the range and try again.`,
-    };
-  }
-
-  return { ok: true, value: undefined };
+  const result = validateDateRange(start, end, FIRES_RANGE_MAX_DAYS, 'get_fires_range');
+  return result.ok ? { ok: true, value: undefined } : result;
 }
 
 // Shared fetch -> 404-handling -> filter -> summarize -> respond sequence for both fire

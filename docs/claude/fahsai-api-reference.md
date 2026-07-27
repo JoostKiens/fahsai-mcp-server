@@ -49,12 +49,19 @@ GET /api/weather?date=YYYY-MM-DD&bbox=...
   Weather grid. date REQUIRED (400 if absent). 404 if not yet ingested for that date.
   → get_weather
 
-GET /api/cams?date=YYYY-MM-DD&bbox=...
-  CAMS gridded PM2.5 model (up to 4,599 points).
+GET /api/cams?date=YYYY-MM-DD&bbox=... (bbox OPTIONAL) — VERIFIED 2026-07-27 (JOO-35)
+  CAMS gridded PM2.5 model (up to 4,599 points; omitting bbox returns the same full
+  four-country grid as explicitly passing the default FAHSAI_DATA_BBOX). date REQUIRED
+  (400 with {"error":"date param required (YYYY-MM-DD)"} if absent).
   → get_cams
 
-GET /api/cams/summary?start=YYYY-MM-DD&end=YYYY-MM-DD
-  Daily p95 PM2.5 time series. Max 130 days (enforce client-side).
+GET /api/cams/summary?start=YYYY-MM-DD&end=YYYY-MM-DD — VERIFIED 2026-07-27 (JOO-35)
+  Nationwide daily PM2.5 series — a `bbox` param is silently IGNORED (confirmed
+  byte-identical responses with/without it), so this route has no area scoping at all.
+  Range cap is enforced client-side, but re-verify the exact number live before trusting
+  this doc: it was observed live-flipping from 120 to 140 days during JOO-35's own
+  development, and its true enforced boundary (139 days succeeds, 140 rejected) is even
+  one less than what its own error message claims — see the gotcha below.
   → get_cams_summary
 
 GET /api/power-plants
@@ -211,11 +218,37 @@ interface WeatherGridPointRaw {
   precipitation_sum: number; // mm
 }
 
-// What /api/cams returns (array of):
-interface PM25GridPoint {
-  lat: number;
-  lng: number;
-  pm25: number; // daily mean µg/m³, CAMS model via Open-Meteo — a model estimate, not a measurement
+// What /api/cams returns — CORRECTED 2026-07-27 (JOO-35) against the live API (bbox
+// 100,13,101,14 and the full 89,1,114,30 SEA bbox, date=2026-07-26, both sampled). This doc
+// previously claimed `data: [{lat,lng,pm25}]` — wrong. The actual response is COLUMNAR: three
+// parallel arrays of equal length; the point at index i is
+// { lat: lats[i], lng: lngs[i], pm25: pm25s[i] }.
+interface CamsApiResponse {
+  data: {
+    lats: number[];
+    lngs: number[];
+    pm25s: number[]; // daily mean µg/m³, CAMS model via Open-Meteo — a model estimate, not a
+                      // ground-station measurement (see get_station_readings for measured values)
+  };
+}
+
+// What /api/cams/summary returns — CORRECTED 2026-07-27 (JOO-35) against the live API
+// (start=2026-07-01, end=2026-07-10, 10 entries observed). This doc previously had no entry
+// for this route's response shape at all.
+//   1. Response is { data: [{date, pm25}] } — no separate p95/mean field, just `pm25`.
+//   2. Per the ticket author (who also maintains the fahsai backend, confirmed 2026-07-27):
+//      this `pm25` value IS the daily p95, despite the field name giving no hint of that.
+//   3. `bbox` is a confirmed no-op on this route — byte-identical response with/without it.
+//      This route is nationwide-only; there is no way to scope it to a specific area.
+//   4. Range cap: observed live-enforced at 120 days early in JOO-35's planning session, then
+//      later the SAME session at 140 days (a backend fix landed mid-verification) — and the
+//      true boundary at 140 is itself off by one from the API's own error message: a 139-day
+//      range succeeds, a 140-day range is rejected with {"error":"range exceeds 140 days"}.
+//      DO NOT hardcode a cap number from this doc — curl a range just above and just below
+//      whatever this server's constant currently is, immediately before changing it, and use
+//      whichever the live API actually enforces.
+interface CamsSummaryApiResponse {
+  data: { date: string; pm25: number }[]; // pm25 here is actually the daily p95, see note above
 }
 ```
 
@@ -240,5 +273,6 @@ Raw PM2.5 µg/m³, not AQI index values. This is what `shared/aqi.ts` implements
 
 - **Attribution**: OpenAQ readings sometimes carry a per-station `attribution` field with requirements beyond the blanket CC BY 4.0 footer note — surface it per-station if present, don't drop it. Not observed on any of 303 live stations sampled 2026-07-26 (JOO-30); `get_station_readings` still passes it through opaquely as a defensive measure.
 - **CAMS is a model, station readings are measurements.** Don't let a tool response or description blur this distinction — an LLM conflating "the model says X" with "a station measured X" is a plausible and consequential mistake.
+- **`/api/cams/summary`'s range cap has been observed changing live** (120→140 days) during active backend development (JOO-35), and its true enforced boundary is one day below what its own error message states (139-day ranges succeed, 140-day ranges are rejected with `{"error":"range exceeds 140 days"}`). Always re-verify live before trusting a hardcoded value in this doc or in `get_cams_summary`'s `CAMS_SUMMARY_RANGE_MAX_DAYS` constant.
 - **Ingestion runs on a schedule.** A 404 on a date-scoped route very often means "not ingested yet," not "no data exists" — see `get_latest_date` as the tool to check first when a caller says "today" without a specific date in mind.
 - **`/api/station-readings/history`'s observed cadence is daily, not hourly**, despite the route's `hours` window param — verified 2026-07-26 (JOO-31) across 10+ stations, including full 168-hour windows, every series returned at most one point per calendar day (`00:00:00Z`). True intraday granularity may exist for some provider but wasn't observed anywhere. `get_station_readings_history` doesn't assume hourly cadence — it summarizes whatever points the API actually returns, and its description discloses this to the caller.
