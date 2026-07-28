@@ -20,9 +20,9 @@ export interface CreatePlaceResolverOptions {
 
 export function createPlaceResolver(options: CreatePlaceResolverOptions = {}): PlaceResolver {
   const cacheTtlSeconds =
-    options.cacheTtlSeconds ?? (Number(process.env.PLACE_RESOLVER_CACHE_TTL_SECONDS) || DEFAULT_CACHE_TTL_SECONDS);
+    options.cacheTtlSeconds ?? Number(DEFAULT_CACHE_TTL_SECONDS);
   const defaultRadiusKm =
-    options.defaultRadiusKm ?? (Number(process.env.DEFAULT_GEOCODE_RADIUS_KM) || DEFAULT_RADIUS_KM);
+    options.defaultRadiusKm ?? Number(DEFAULT_RADIUS_KM);
   const nominatimClient = options.nominatimClient ?? createNominatimClient();
   const cache = new Cache<string, CachedPoint>(cacheTtlSeconds * 1000);
 
