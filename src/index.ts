@@ -8,6 +8,8 @@ import { registerGetCams } from './tools/get-cams/index.js';
 import { registerGetCamsSummary } from './tools/get-cams-summary/index.js';
 import { registerGetFires } from './tools/get-fires/index.js';
 import { registerGetFiresRange } from './tools/get-fires-range/index.js';
+import { registerGetLatestDate } from './tools/get-latest-date/index.js';
+import { registerGetPowerPlants } from './tools/get-power-plants/index.js';
 import { registerGetStationBaseline } from './tools/get-station-baseline/index.js';
 import { registerGetStationHistory } from './tools/get-station-history/index.js';
 import { registerGetStationReadings } from './tools/get-station-readings/index.js';
@@ -30,5 +32,7 @@ registerGetWeather(server, deps);
 registerGetCams(server, deps);
 registerGetCamsSummary(server, deps);
 registerGeocodePlace(server, deps);
+registerGetPowerPlants(server, deps);
+registerGetLatestDate(server, deps);
 
 await server.connect(new StdioServerTransport());

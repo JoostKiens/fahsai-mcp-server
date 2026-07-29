@@ -50,3 +50,8 @@ export function clampToDataBbox(
 export function formatBboxParam(bbox: BoundingBox): string {
   return `${bbox.west},${bbox.south},${bbox.east},${bbox.north}`;
 }
+
+// Inclusive on all four edges — matches clampToDataBbox's own boundary handling.
+export function pointInBbox(lat: number, lng: number, bbox: BoundingBox): boolean {
+  return lat >= bbox.south && lat <= bbox.north && lng >= bbox.west && lng <= bbox.east;
+}

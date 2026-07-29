@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { CALL_GET_LATEST_DATE_FIRST_NOTE } from '../../shared/tool-descriptions.js';
 import { createGetCamsHandler, type CamsToolDeps } from './handler.js';
 import { camsSummaryOutputSchema, getCamsInputSchema } from './schema.js';
 
@@ -15,7 +16,7 @@ export function registerGetCams(server: McpServer, deps: CamsToolDeps): void {
         'summary (mean, median, and p95 PM2.5 across the grid, each with its own AQI category), not the raw ' +
         'grid — set `include_raw_grid` to also get individual grid points (evenly, spatially sampled; capped ' +
         'at 500 points even when requested, with a note if the grid was truncated). Omitting both `place` and ' +
-        '`bbox` summarizes the full four-country coverage area, not any one place.',
+        `\`bbox\` summarizes Fahsai's full coverage area, not any one place. ${CALL_GET_LATEST_DATE_FIRST_NOTE}`,
       inputSchema: getCamsInputSchema.shape,
       outputSchema: camsSummaryOutputSchema.shape,
     },

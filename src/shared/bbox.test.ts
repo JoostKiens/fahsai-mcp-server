@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { FAHSAI_DATA_BBOX, clampToDataBbox, formatBboxParam, radiusKmToBbox } from './bbox.js';
+import { FAHSAI_DATA_BBOX, clampToDataBbox, formatBboxParam, pointInBbox, radiusKmToBbox } from './bbox.js';
 
 describe('radiusKmToBbox', () => {
   it('converts a point + radius to a symmetric bbox using a flat km-per-degree constant', () => {
@@ -47,5 +47,29 @@ describe('formatBboxParam', () => {
 
   it('serializes negative and decimal coordinates unchanged', () => {
     expect(formatBboxParam({ west: -10.5, south: 40.25, east: 10, north: 50 })).toBe('-10.5,40.25,10,50');
+  });
+});
+
+describe('pointInBbox', () => {
+  it('returns true for a point well inside the bbox', () => {
+    expect(pointInBbox(15, 100, FAHSAI_DATA_BBOX)).toBe(true);
+  });
+
+  it('returns false for a point outside the bbox', () => {
+    expect(pointInBbox(45, 116, FAHSAI_DATA_BBOX)).toBe(false);
+  });
+
+  it('is inclusive on all four edges', () => {
+    expect(pointInBbox(1, 100, FAHSAI_DATA_BBOX)).toBe(true); // south edge
+    expect(pointInBbox(30, 100, FAHSAI_DATA_BBOX)).toBe(true); // north edge
+    expect(pointInBbox(15, 89, FAHSAI_DATA_BBOX)).toBe(true); // west edge
+    expect(pointInBbox(15, 114, FAHSAI_DATA_BBOX)).toBe(true); // east edge
+  });
+
+  it('returns false just outside each edge', () => {
+    expect(pointInBbox(0.9, 100, FAHSAI_DATA_BBOX)).toBe(false);
+    expect(pointInBbox(30.1, 100, FAHSAI_DATA_BBOX)).toBe(false);
+    expect(pointInBbox(15, 88.9, FAHSAI_DATA_BBOX)).toBe(false);
+    expect(pointInBbox(15, 114.1, FAHSAI_DATA_BBOX)).toBe(false);
   });
 });
