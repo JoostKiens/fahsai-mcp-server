@@ -11,5 +11,13 @@ export default defineConfig({
     passWithNoTests: true,
     include: live ? ['**/*.live.test.ts'] : configDefaults.include,
     exclude: live ? configDefaults.exclude : [...configDefaults.exclude, '**/*.live.test.ts'],
+    coverage: {
+      provider: 'v8',
+      exclude: [
+        ...(configDefaults.coverage.exclude ?? []),
+        '**/*.fixtures.ts',
+        '**/*.live.test.ts',
+      ],
+    },
   },
 });
