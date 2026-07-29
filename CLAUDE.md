@@ -4,7 +4,7 @@ This file is the entrypoint for Claude Code working in this repository. Read it 
 
 ## What this project is
 
-An open-source, npm-published MCP server exposing [Fahsai](https://fahsai.fyi)'s public data — active fire detections, PM2.5 air quality (ground stations and the CAMS atmospheric model), weather/wind, and power plants across Thailand, Myanmar, Laos, and Cambodia — as LLM-friendly tools. This server is a client of the [`fahsai`](https://github.com/JoostKiens/fahsai) repo's public REST API; it doesn't share code or a database with it. TypeScript, `@modelcontextprotocol/sdk`, Zod validation, **STDIO transport only**.
+An open-source, npm-published MCP server exposing [Fahsai](https://fahsai.fyi)'s public data — active fire detections, PM2.5 air quality (ground stations and the CAMS atmospheric model), weather/wind, and power plants across mainland Southeast Asia and surrounding areas — as LLM-friendly tools. This server is a client of the [`fahsai`](https://github.com/JoostKiens/fahsai) repo's public REST API; it doesn't share code or a database with it. TypeScript, `@modelcontextprotocol/sdk`, Zod validation, **STDIO transport only**.
 
 This is a **practice / portfolio project** — hands-on MCP experience, a GitHub artifact, a LinkedIn talking point. It is explicitly *not* a Fahsai product roadmap item, so scope stays tight; don't gold-plate.
 

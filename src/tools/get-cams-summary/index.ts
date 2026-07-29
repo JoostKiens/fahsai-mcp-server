@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { CALL_GET_LATEST_DATE_FIRST_NOTE } from '../../shared/tool-descriptions.js';
 import { createGetCamsSummaryHandler, type CamsSummaryToolDeps } from './handler.js';
 import {
   CAMS_SUMMARY_RANGE_MAX_DAYS,
@@ -18,7 +19,7 @@ export function registerGetCamsSummary(server: McpServer, deps: CamsSummaryToolD
         "don't conflate the two). NATIONWIDE ONLY: this route has no place/bbox scoping on the Fahsai API side, " +
         'so do not pass a location to this tool — results always cover the full default coverage area. Each ' +
         `day's value is the CAMS daily p95 PM2.5, with its own AQI category. Max ${CAMS_SUMMARY_RANGE_MAX_DAYS} ` +
-        'days per request (enforced client-side); narrow the range and retry if rejected.',
+        `days per request (enforced client-side); narrow the range and retry if rejected. ${CALL_GET_LATEST_DATE_FIRST_NOTE}`,
       inputSchema: getCamsSummaryInputSchema.shape,
       outputSchema: camsSummarySeriesOutputSchema.shape,
     },

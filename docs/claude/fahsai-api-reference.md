@@ -51,7 +51,7 @@ GET /api/weather?date=YYYY-MM-DD&bbox=...
 
 GET /api/cams?date=YYYY-MM-DD&bbox=... (bbox OPTIONAL) — VERIFIED 2026-07-27 (JOO-35)
   CAMS gridded PM2.5 model (up to 4,599 points; omitting bbox returns the same full
-  four-country grid as explicitly passing the default FAHSAI_DATA_BBOX). date REQUIRED
+  coverage-area grid as explicitly passing the default FAHSAI_DATA_BBOX). date REQUIRED
   (400 with {"error":"date param required (YYYY-MM-DD)"} if absent).
   → get_cams
 
@@ -64,13 +64,19 @@ GET /api/cams/summary?start=YYYY-MM-DD&end=YYYY-MM-DD — VERIFIED 2026-07-27 (J
   one less than what its own error message claims — see the gotcha below.
   → get_cams_summary
 
-GET /api/power-plants
-  WRI power plants (Coal/Gas/Oil), THA/MMR/LAO/KHM, GeoJSON FeatureCollection. No bbox param on
-  the API side — this server filters client-side when place/bbox given.
+GET /api/power-plants — VERIFIED 2026-07-29 (JOO-36)
+  WRI power plants (Coal/Gas/Oil), bare GeoJSON FeatureCollection (not { data: [...] }-wrapped
+  like every other array route). This doc previously claimed the dataset was pre-scoped to
+  THA/MMR/LAO/KHM — wrong: it's GLOBAL (1,640 features live, mostly China/India), and no
+  `bbox`/`country` query param has any effect (confirmed byte-identical responses with/without
+  them). This server must filter client-side to FAHSAI_DATA_BBOX (357 of the 1,640 features
+  fall inside it) — never assume the API already scoped this for you.
   → get_power_plants
 
-GET /api/latest-date
-  Most recent date with complete data across fires/CAMS/station_readings.
+GET /api/latest-date — VERIFIED 2026-07-29 (JOO-36)
+  Most recent date with complete data across fires/CAMS/station_readings. Bare
+  { date: "YYYY-MM-DD" }, no per-source breakdown despite the stated multi-source gating —
+  extra query params are silently ignored (still 200 with the same body).
   → get_latest_date
 ```
 
@@ -249,6 +255,40 @@ interface CamsApiResponse {
 //      whichever the live API actually enforces.
 interface CamsSummaryApiResponse {
   data: { date: string; pm25: number }[]; // pm25 here is actually the daily p95, see note above
+}
+
+// What /api/power-plants returns — VERIFIED 2026-07-29 (JOO-36) against the live API (1,640
+// features). This doc previously had no entry for this route's shape at all, and separately
+// claimed (in this doc and in CLAUDE.md/README.md/package.json) that the dataset itself was
+// pre-scoped to Thailand/Myanmar/Laos/Cambodia — also wrong, that framing was never checked
+// against the live route. It's a bare FeatureCollection (not { data: [...] }-wrapped), global
+// (mostly China/India plants), with no bbox/country query param support — this server filters
+// features to FAHSAI_DATA_BBOX client-side (see src/shared/bbox.ts's pointInBbox).
+interface PowerPlantsApiResponse {
+  type: 'FeatureCollection';
+  features: PowerPlantFeature[];
+}
+interface PowerPlantFeature {
+  type: 'Feature';
+  geometry: { type: 'Point'; coordinates: [number, number] }; // [lng, lat]
+  properties: {
+    id: number;
+    name: string;
+    country: string; // ISO 3166-1 alpha-3, e.g. "THA", "CHN"
+    fuel_type: 'Coal' | 'Gas' | 'Oil';
+    capacity_mw: number;
+    owner: string | null;
+    commissioned_year: number | null;
+  };
+}
+
+// What /api/latest-date returns — VERIFIED 2026-07-29 (JOO-36) against the live API. This doc
+// previously had no entry for this route's shape at all. Bare { date }, no per-source
+// breakdown despite the route's stated purpose (complete across fires/CAMS/station_readings) —
+// get_latest_date adds a static note describing that gating in code, since the API gives
+// nothing dynamic to report per source. Extra query params are silently ignored (still 200).
+interface LatestDateApiResponse {
+  date: string; // YYYY-MM-DD
 }
 ```
 
