@@ -12,7 +12,7 @@ const toolNames = fs
 
 module.exports = [
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
   {
     files: ['src/**/*.ts'],
