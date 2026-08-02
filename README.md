@@ -52,9 +52,11 @@ Restart Claude Desktop after editing the config. All 13 tools (fires, PM2.5 stat
 
 ## Example prompts
 
+Fahsai ingests data on a daily schedule and has no live "today" — "yesterday" is typically the most recent complete date (new data usually lands by 06:30 Bangkok time). Ask for the "latest" reading or a specific past date rather than "today"; the server also exposes `get_latest_date` to look up the most recent complete date directly.
+
 - **Fires:** "Are there any active fires near the Myanmar–Thailand border in the last week?"
-- **PM2.5:** "What's the PM2.5 air quality like in Chiang Mai right now?"
-- **Weather:** "What's the wind direction and speed over Bangkok today?"
+- **PM2.5:** "What's the latest PM2.5 reading in Chiang Mai?"
+- **Weather:** "What was the wind direction and speed over Bangkok yesterday?"
 - **Power plants:** "How many coal power plants are within 50 km of Mae Moh?"
 - **Place-name resolution:** "Where exactly is the Golden Triangle, and which country is it in?"
 
