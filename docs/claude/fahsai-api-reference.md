@@ -18,7 +18,11 @@ GET /api/fires/range?start=YYYY-MM-DD&end=YYYY-MM-DD&bbox=...
   → get_fires_range
 
 GET /api/station-readings/latest?parameter=pm25&bbox=...&date=YYYY-MM-DD
-  Latest measurement per station. date optional (last 24h if absent).
+  Latest measurement per station. date optional (last 24h if absent) — but VERIFIED
+  2026-08-02 (JOO-38) that omitting it 404s the same way an explicit today's-date does
+  when today isn't ingested yet, rather than falling back to a rolling last-24h window as
+  this doc previously claimed with no observed exception. Passing the prior complete date
+  (e.g. from /api/latest-date) succeeded. Re-verify before relying on the omitted-date case.
   → get_station_readings
 
 GET /api/station-readings/history?station_id=...&parameter=pm25&hours=24

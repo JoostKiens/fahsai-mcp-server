@@ -47,6 +47,8 @@ npm run test           # unit tests (fixtures only, no network)
 npm run test:live       # live API smoke tests against the Fahsai backend (no auth required)
 ```
 
+`test:live` hits the real Fahsai API (network required) and is deliberately excluded from `npm test` and CI — run it manually before a release, or whenever a param name or response-shape assumption pulled from `fahsai-api-reference.md` is suspected of having drifted from what the live API actually does.
+
 ## Environment
 
 No API keys required — Fahsai's REST API and Nominatim are both public/unauthenticated. The Fahsai API's base URL (`https://api-server-service-production.up.railway.app` — Fahsai's backend is deployed on Railway; `fahsai.fyi` is the frontend domain and does not proxy the API) is a fixed constant in `src/shared/fahsai-client/client.ts`, not an env var — it's an implementation detail, not a per-install preference.
