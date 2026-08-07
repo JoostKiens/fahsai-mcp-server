@@ -1,8 +1,10 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
+import { fetchLatestDate } from '../../shared/latest-date.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
+import type { StationReadingLatestRaw, StationReadingsApiResponse } from '../../shared/station-readings.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type { GetStationReadingsInput, StationReadingSummary, StationReadingsSummary, StationReadingsToolResult } from './schema.js';
 
@@ -11,26 +13,9 @@ export interface StationReadingsToolDeps {
   readonly placeResolver: PlaceResolver;
 }
 
-// What /api/station-readings/latest returns, wrapped as { data: StationReadingLatestRaw[] } —
-// verified 2026-07-26 (JOO-30) against the live API, 303 stations across the full SEA bbox.
-// `attribution` was never observed on any live station — it's kept here (and typed loosely,
-// not assumed to be a string) because fahsai-api-reference.md's "known upstream gotchas"
-// section documents it as a real, if rare, per-station OpenAQ quirk that must be passed
-// through when present, not dropped.
-export interface StationReadingLatestRaw {
-  readonly stationId: string;
-  readonly stationName: string;
-  readonly lat: number;
-  readonly lng: number;
-  readonly country: string;
-  readonly value: number;
-  readonly measuredAt: string;
-  readonly attribution?: unknown;
-}
-
-export interface StationReadingsApiResponse {
-  readonly data: readonly StationReadingLatestRaw[];
-}
+// Re-exported for existing consumers (e.g. this tool's own live test) — the raw shape now
+// lives in shared/station-readings.ts since shared/nearest-station is a second consumer.
+export type { StationReadingLatestRaw, StationReadingsApiResponse };
 
 function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSummary | null {
   const result = classifyAqiOrNull(raw.value);
@@ -82,10 +67,8 @@ export function emptyStationReadingsSummary(): StationReadingsSummary {
 // The live API 404s for both "no stations in this bbox" and "not ingested yet for this
 // date" with the same message — this covers both, and (defensively) a 200 with an empty
 // `data` array, in case that ever changes.
-function noDataNote(date?: string): string {
-  return date
-    ? `No station readings available for ${date}.`
-    : 'No station readings currently available for this location.';
+function noDataNote(date: string): string {
+  return `No station readings available for ${date}.`;
 }
 
 export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
@@ -96,27 +79,33 @@ export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
     }
 
     const { bbox, note: locationNote } = locationResult.value;
+
+    // /api/station-readings/latest 404s when `date` is omitted instead of falling back to
+    // a rolling window (verified 2026-08-02, JOO-38) — resolve a real date first so "no date
+    // given" actually returns the latest available readings instead of a spurious empty result.
+    let date = input.date;
+    if (date === undefined) {
+      const latestDateResult = await fetchLatestDate(deps.client);
+      if (!latestDateResult.ok) {
+        return buildToolError(latestDateResult.error.message);
+      }
+      date = latestDateResult.value;
+    }
+
     const fetchResult = await deps.client.get<StationReadingsApiResponse>(
       '/api/station-readings/latest',
-      {
-        bbox: formatBboxParam(bbox),
-        date: input.date,
-      },
+      { bbox: formatBboxParam(bbox), date },
     );
 
     if (!fetchResult.ok) {
       if (fetchResult.error.kind === 'not-found') {
-        return buildToolResponse(
-          emptyStationReadingsSummary(),
-          locationNote,
-          noDataNote(input.date),
-        );
+        return buildToolResponse(emptyStationReadingsSummary(), locationNote, noDataNote(date));
       }
       return buildToolError(fetchResult.error.message);
     }
 
     if (fetchResult.value.data.length === 0) {
-      return buildToolResponse(emptyStationReadingsSummary(), locationNote, noDataNote(input.date));
+      return buildToolResponse(emptyStationReadingsSummary(), locationNote, noDataNote(date));
     }
 
     return buildToolResponse(summarizeStationReadings(fetchResult.value.data), locationNote);

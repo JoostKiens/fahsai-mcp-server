@@ -23,7 +23,9 @@ GET /api/station-readings/latest?parameter=pm25&bbox=...&date=YYYY-MM-DD
   when today isn't ingested yet, rather than falling back to a rolling last-24h window as
   this doc previously claimed with no observed exception. Passing the prior complete date
   (e.g. from /api/latest-date) succeeded. Re-verify before relying on the omitted-date case.
-  → get_station_readings
+  → get_station_readings, shared/nearest-station. Both call sites work around this in code
+  (JOO-46): when no date is given, they fetch /api/latest-date first and pass that through,
+  rather than omitting `date` — this is not an open bug in either, it's already handled.
 
 GET /api/station-readings/history?station_id=...&parameter=pm25&hours=24
   Raw time series for a single station. Requires station_id. Max 168 hours / 7 days
