@@ -91,7 +91,7 @@ describe('createGetStationReadingsHandler', () => {
       placeResolver: fakePlaceResolver(resolve),
     });
 
-    await handler({ place: 'Chiang Mai' });
+    await handler({ place: 'Chiang Mai', date: '2026-07-25' });
 
     const [, params] = get.mock.calls[0] as [string, Record<string, unknown>];
     expect(params).not.toHaveProperty('parameter');
@@ -116,11 +116,16 @@ describe('createGetStationReadingsHandler', () => {
     expect(structured.note).toBe('No station readings available for 2099-01-01.');
   });
 
-  it('uses a location-only no-data note when no date was given', async () => {
+  it('fetches /api/latest-date first when no date is given, and uses it in both the station-readings call and the no-data note', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({
-      ok: false,
-      error: { kind: 'not-found', status: 404, message: 'No station readings for this date.' },
+    const get = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/latest-date') {
+        return { ok: true, value: { date: '2026-08-05' } };
+      }
+      return {
+        ok: false,
+        error: { kind: 'not-found', status: 404, message: 'No station readings for this date.' },
+      };
     });
     const handler = createGetStationReadingsHandler({
       client: fakeClient(get),
@@ -129,8 +134,30 @@ describe('createGetStationReadingsHandler', () => {
 
     const result = await handler({ place: 'Chiang Mai' });
 
+    expect(get).toHaveBeenNthCalledWith(1, '/api/latest-date');
+    expect(get).toHaveBeenNthCalledWith(2, '/api/station-readings/latest', {
+      bbox: '98.5,18.3,99.5,19.3',
+      date: '2026-08-05',
+    });
     const structured = result.structuredContent as { note?: string };
-    expect(structured.note).toBe('No station readings currently available for this location.');
+    expect(structured.note).toBe('No station readings available for 2026-08-05.');
+  });
+
+  it('returns isError when /api/latest-date itself fails', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', message: 'Request to Fahsai API failed: timeout' },
+    });
+    const handler = createGetStationReadingsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
+
+    const result = await handler({ place: 'Chiang Mai' });
+
+    expect(result.isError).toBe(true);
+    expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('treats a 200 with an empty data array the same as a 404 (defensive)', async () => {
