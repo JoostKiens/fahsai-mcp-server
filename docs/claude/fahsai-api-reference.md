@@ -84,6 +84,18 @@ GET /api/latest-date — VERIFIED 2026-07-29 (JOO-36)
   { date: "YYYY-MM-DD" }, no per-source breakdown despite the stated multi-source gating —
   extra query params are silently ignored (still 200 with the same body).
   → get_latest_date
+
+GET /api/explain/context?stationId=...&lat=...&lng=...&date=YYYY-MM-DD — VERIFIED 2026-08-07
+  (JOO-47), both live (5 stations, several explainCase values) and against fahsai's own source
+  (github.com/JoostKiens/fahsai, packages/backend/src/lib/buildScientificContext.ts). Returns
+  ScientificContext — see the dedicated shape entry below. `stationId`/`lat`/`lng` required
+  (400 if missing); `date` optional, defaults to today (Bangkok). 404 (not { error }-wrapped
+  ScientificContext) when there's no reading for that station+date. This is a DIFFERENT route
+  from `POST /api/explain` below — plain JSON, no Gemini call, no SSE, no shared quota, its own
+  dedicated rate limiter (~20 req/min/IP). Do not confuse the two when reading this doc.
+  → get_reading_explanation. Requires a resolved station — shared/nearest-station's
+  findNearestStation (JOO-46) picks the nearest one to the requested place/bbox with a reading
+  for the requested date, within a 50km cutoff, before this route is called.
 ```
 
 ## Routes this server deliberately does NOT wrap
@@ -92,6 +104,8 @@ GET /api/latest-date — VERIFIED 2026-07-29 (JOO-36)
 POST /api/explain
   Gemini-streamed AQI explanation. Shared 500 req/Bangkok-day quota with fahsai.fyi's real users.
   SSE-streamed. Excluded per CLAUDE.md's non-negotiable constraints — see architecture.md.
+  Its sibling GET /api/explain/context (plain JSON, no Gemini call) is NOT excluded — see
+  "Routes this server wraps" above; get_reading_explanation (JOO-47) wraps that one instead.
 
 GET /health
   Liveness check. No LLM-facing value.
@@ -296,6 +310,38 @@ interface PowerPlantFeature {
 interface LatestDateApiResponse {
   date: string; // YYYY-MM-DD
 }
+
+// What /api/explain/context returns — VERIFIED 2026-08-07 (JOO-47) both live (stations 5554536,
+// 2843771, 3597974, 3524548, 225569 — covering the transport, stationBaseline, OUTLIER_HIGH,
+// persistentWind:null, and tier1/distribution cases) and directly against fahsai's own source
+// (buildScientificContext.ts). This is the strongest verification level in this doc: not just
+// live sampling, but the actual server-side type definition. Full field-by-field detail (every
+// nested interface, exact nullability, source cross-check comments) lives in
+// src/tools/get-reading-explanation/schema.ts, not duplicated here — treat that file as the
+// canonical copy and this entry as a summary/index into it. Key gotchas worth knowing before
+// touching either file:
+//   1. Nullability is NOT uniform. Only persistentWind, transport, areaFirePressure, trend,
+//      peers, outlier, and stationBaseline can be null at the top level; several of those also
+//      have individually-nullable subfields (e.g. transport.fire.recency, peers.range,
+//      weatherContext.days[].humidity). Getting this wrong silently strips real data client-side
+//      the moment the true value differs from what a Zod schema assumed — see schema.ts's own
+//      history of catching exactly this live.
+//   2. `outlier` is a discriminated union, not a flat object: `{ type: 'HIGH', ratio, peerTier }`
+//      | `{ type: 'LOW', ratio }` | null — `peerTier` does not exist on the LOW branch.
+//   3. `explainCase` (OUTLIER_HIGH | OUTLIER_LOW | PLAUSIBLE_FIRE_TRANSPORT |
+//      PLAUSIBLE_URBAN_INDUSTRIAL | PLAUSIBLE_CLEAN | PLAUSIBLE_REGIONAL_BACKGROUND |
+//      PLAUSIBLE_UNCLEAR, from fahsai's routes/explain.ts) and the upwind-source `type` field
+//      (city/coal_plant/gas_plant/oil_plant/industrial, from scripts/eval/types.ts's
+//      FixtureUpwindSource) are both known, closed enums at the source today, but are
+//      deliberately kept as loose strings in schema.ts — they're owned by a separately-versioned
+//      repo that could add a case without this package being updated in lockstep, and a strict
+//      Zod enum would turn that into a hard tool-call failure instead of just an under-typed
+//      field.
+//   4. `stationBaseline.category` (Exclude<BaselineCategory, 'normal'>, from
+//      packages/types/src/baseline.ts) IS strictly enumed in schema.ts
+//      (wellAbove/above/below/wellBelow) — unlike the two cases above, this is a fixed,
+//      IQR-derived statistical classification computed by a pure function, not a growing case
+//      taxonomy, so the drift risk that justifies keeping explainCase/type loose doesn't apply.
 ```
 
 ## AQI thresholds (US EPA, from `fahsai`'s `docs/claude/frontend.md`)

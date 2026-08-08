@@ -11,6 +11,7 @@ import { registerGetFires } from './tools/get-fires/index.js';
 import { registerGetFiresRange } from './tools/get-fires-range/index.js';
 import { registerGetLatestDate } from './tools/get-latest-date/index.js';
 import { registerGetPowerPlants } from './tools/get-power-plants/index.js';
+import { registerGetReadingExplanation } from './tools/get-reading-explanation/index.js';
 import { registerGetStationBaseline } from './tools/get-station-baseline/index.js';
 import { registerGetStationHistory } from './tools/get-station-history/index.js';
 import { registerGetStationReadings } from './tools/get-station-readings/index.js';
@@ -35,5 +36,6 @@ registerGetCamsSummary(server, deps);
 registerGeocodePlace(server, deps);
 registerGetPowerPlants(server, deps);
 registerGetLatestDate(server, deps);
+registerGetReadingExplanation(server, deps);
 
 await server.connect(new StdioServerTransport());
