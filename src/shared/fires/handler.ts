@@ -1,6 +1,7 @@
+import { asArray } from '../as-array.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
+import { fetchAndSummarize } from '../fetch-summarize.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
-import { buildToolError, buildToolResponse } from '../tool-response.js';
 import {
   type FireConfidence,
   type FireConfidenceBreakdown,
@@ -128,11 +129,10 @@ export function emptyFireSummary(): FireSummary {
   };
 }
 
-// Shared fetch -> 404-handling -> filter -> summarize -> respond sequence for both fire
-// tools, so a change to that sequence (e.g. how notes get merged) only has to happen once.
-// `confidence` is applied client-side only (see filterByConfidence) — the live API's
-// `confidence` query param has no observable filtering effect (verified 2026-07-26), so it's
-// not sent at all.
+// Fetch -> 404-handling -> filter -> summarize -> respond, via the shared fetchAndSummarize
+// sequence (shared/fetch-summarize.ts) used by every bbox/date-scoped tool. `confidence` is
+// applied client-side only (see filterByConfidence) — the live API's `confidence` query param
+// has no observable filtering effect (verified 2026-07-26), so it's not sent at all.
 export async function fetchAndSummarizeFires(
   client: FahsaiClient,
   path: string,
@@ -141,15 +141,11 @@ export async function fetchAndSummarizeFires(
   notFoundNote: string,
   locationNote?: string,
 ): Promise<FireToolResult> {
-  const fetchResult = await client.get<FiresApiResponse>(path, params);
-
-  if (!fetchResult.ok) {
-    if (fetchResult.error.kind === 'not-found') {
-      return buildToolResponse(emptyFireSummary(), locationNote, notFoundNote);
-    }
-    return buildToolError(fetchResult.error.message);
-  }
-
-  const points = filterByConfidence(fetchResult.value.data, confidence);
-  return buildToolResponse(summarizeFires(points), locationNote);
+  return fetchAndSummarize(client, path, params, {
+    extractData: (body) => asArray<FirePoint>((body as FiresApiResponse | undefined)?.data),
+    summarize: (points) => summarizeFires(filterByConfidence(points, confidence)),
+    emptySummary: emptyFireSummary(),
+    notFoundNote,
+    locationNote,
+  });
 }

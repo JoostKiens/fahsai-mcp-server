@@ -28,3 +28,15 @@ export async function fetchLatestDate(client: FahsaiClient): Promise<Result<stri
 
   return { ok: true, value: result.value.date };
 }
+
+// Resolves `date` if given, otherwise fetches the latest available date — the fallback needed
+// by every caller for whom the underlying endpoint 404s on an omitted date rather than
+// defaulting to a rolling window (see fetchLatestDate above). A no-op (no network call) once a
+// date is already known, so calling this again after an earlier resolution costs nothing extra.
+export async function resolveDateOrLatest(
+  client: FahsaiClient,
+  date: string | undefined,
+): Promise<Result<string, FahsaiError>> {
+  if (date !== undefined) return { ok: true, value: date };
+  return fetchLatestDate(client);
+}

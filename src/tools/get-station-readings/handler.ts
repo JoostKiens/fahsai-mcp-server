@@ -1,10 +1,12 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
+import { asArray } from '../../shared/as-array.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
-import { fetchLatestDate } from '../../shared/latest-date.js';
+import { resolveDateOrLatest } from '../../shared/latest-date.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
 import type { StationReadingLatestRaw, StationReadingsApiResponse } from '../../shared/station-readings.js';
+import { summarizeValidReadings } from '../../shared/summarize-valid-readings.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type { GetStationReadingsInput, StationReadingSummary, StationReadingsSummary, StationReadingsToolResult } from './schema.js';
 
@@ -40,24 +42,8 @@ function toStationReadingSummary(raw: StationReadingLatestRaw): StationReadingSu
 export function summarizeStationReadings(
   raw: readonly StationReadingLatestRaw[],
 ): StationReadingsSummary {
-  const readings: StationReadingSummary[] = [];
-  let omitted = 0;
-
-  for (const entry of raw) {
-    const summary = toStationReadingSummary(entry);
-    if (summary === null) {
-      omitted += 1;
-      continue;
-    }
-    readings.push(summary);
-  }
-
-  return {
-    total: readings.length,
-    readings,
-    note:
-      omitted > 0 ? `${omitted} station reading(s) omitted for an invalid PM2.5 value.` : undefined,
-  };
+  const { items, note } = summarizeValidReadings(raw, toStationReadingSummary, 'station reading');
+  return { total: items.length, readings: items, note };
 }
 
 export function emptyStationReadingsSummary(): StationReadingsSummary {
@@ -83,14 +69,11 @@ export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
     // /api/station-readings/latest 404s when `date` is omitted instead of falling back to
     // a rolling window (verified 2026-08-02, JOO-38) — resolve a real date first so "no date
     // given" actually returns the latest available readings instead of a spurious empty result.
-    let date = input.date;
-    if (date === undefined) {
-      const latestDateResult = await fetchLatestDate(deps.client);
-      if (!latestDateResult.ok) {
-        return buildToolError(latestDateResult.error.message);
-      }
-      date = latestDateResult.value;
+    const dateResult = await resolveDateOrLatest(deps.client, input.date);
+    if (!dateResult.ok) {
+      return buildToolError(dateResult.error.message);
     }
+    const date = dateResult.value;
 
     const fetchResult = await deps.client.get<StationReadingsApiResponse>(
       '/api/station-readings/latest',
@@ -104,10 +87,13 @@ export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    if (fetchResult.value.data.length === 0) {
+    // Guard against a malformed success body (missing/renamed `data`) instead of letting
+    // downstream indexing throw — fahsai-client casts JSON to T with no runtime check.
+    const data = asArray<StationReadingLatestRaw>(fetchResult.value?.data);
+    if (data.length === 0) {
       return buildToolResponse(emptyStationReadingsSummary(), locationNote, noDataNote(date));
     }
 
-    return buildToolResponse(summarizeStationReadings(fetchResult.value.data), locationNote);
+    return buildToolResponse(summarizeStationReadings(data), locationNote);
   };
 }

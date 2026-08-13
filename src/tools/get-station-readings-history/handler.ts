@@ -1,6 +1,7 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
 import { asArray } from '../../shared/as-array.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
+import { summarizeValidReadings } from '../../shared/summarize-valid-readings.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type {
   GetStationReadingsHistoryInput,
@@ -44,25 +45,8 @@ export function summarizeStationReadingsHistory(
   stationId: string,
   hoursRequested: number,
 ): StationReadingsHistorySummary {
-  const readings: StationReadingHistoryPoint[] = [];
-  let omitted = 0;
-
-  for (const entry of raw) {
-    const point = toStationReadingHistoryPoint(entry);
-    if (point === null) {
-      omitted += 1;
-      continue;
-    }
-    readings.push(point);
-  }
-
-  return {
-    stationId,
-    hoursRequested,
-    total: readings.length,
-    readings,
-    note: omitted > 0 ? `${omitted} reading(s) omitted for an invalid PM2.5 value.` : undefined,
-  };
+  const { items, note } = summarizeValidReadings(raw, toStationReadingHistoryPoint);
+  return { stationId, hoursRequested, total: items.length, readings: items, note };
 }
 
 export function emptyStationReadingsHistorySummary(

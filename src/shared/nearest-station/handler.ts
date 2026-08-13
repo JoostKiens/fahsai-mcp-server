@@ -1,6 +1,7 @@
+import { asArray } from '../as-array.js';
 import { formatBboxParam, type BoundingBox } from '../bbox.js';
 import type { FahsaiClient, FahsaiError } from '../fahsai-client/client.js';
-import { fetchLatestDate } from '../latest-date.js';
+import { resolveDateOrLatest } from '../latest-date.js';
 import type { Result } from '../result.js';
 import type { StationReadingLatestRaw, StationReadingsApiResponse } from '../station-readings.js';
 
@@ -102,12 +103,9 @@ async function resolveByBbox(
   bbox: BoundingBox,
   date?: string,
 ): Promise<Result<NearestStation, NearestStationError>> {
-  let resolvedDate = date;
-  if (resolvedDate === undefined) {
-    const latestDateResult = await fetchLatestDate(client);
-    if (!latestDateResult.ok) return latestDateResult;
-    resolvedDate = latestDateResult.value;
-  }
+  const dateResult = await resolveDateOrLatest(client, date);
+  if (!dateResult.ok) return dateResult;
+  const resolvedDate = dateResult.value;
 
   const fetchResult = await client.get<StationReadingsApiResponse>('/api/station-readings/latest', {
     bbox: formatBboxParam(bbox),
@@ -121,11 +119,14 @@ async function resolveByBbox(
     return fetchResult;
   }
 
-  if (fetchResult.value.data.length === 0) {
+  // Guard against a malformed success body (missing/renamed `data`) instead of letting
+  // downstream indexing throw — fahsai-client casts JSON to T with no runtime check.
+  const readings = asArray<StationReadingLatestRaw>(fetchResult.value?.data);
+  if (readings.length === 0) {
     return noNearbyStation('No stations found within the search area.');
   }
 
-  const candidates = fetchResult.value.data.filter((reading) => hasReadingForDate(reading, resolvedDate));
+  const candidates = readings.filter((reading) => hasReadingForDate(reading, resolvedDate));
   if (candidates.length === 0) {
     return noNearbyStation(`No station has a reading for ${resolvedDate}.`);
   }
