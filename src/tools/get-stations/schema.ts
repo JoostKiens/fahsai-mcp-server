@@ -5,6 +5,7 @@ import { locationInput } from '../../shared/schema/location.js';
 
 export const getStationsInputSchema = z.object({
   ...locationInput.shape,
+  name: z.string().min(1).optional(),
 });
 
 export type GetStationsInput = z.infer<typeof getStationsInputSchema>;

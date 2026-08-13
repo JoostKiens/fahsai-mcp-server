@@ -7,6 +7,11 @@ import type { StationsApiResponse } from './handler.js';
 // SEA-wide default bbox entirely, rather than asserting anything about that edge case here.
 const SMALL_BBOX = '99,13,101,15';
 
+// Full coverage bbox (matches FAHSAI_DATA_BBOX) — used for the name-search test below since
+// the target station's exact location isn't known ahead of time; `q` and `bbox` compose as
+// AND server-side, so a bbox too small to contain the station would produce a false negative.
+const FULL_BBOX = '89,1,114,30';
+
 describe('/api/stations (live)', () => {
   it('returns { data } wrapped stations matching the documented shape', async () => {
     const client = createFahsaiClient();
@@ -28,6 +33,22 @@ describe('/api/stations (live)', () => {
       expect(station).not.toHaveProperty('isMobile');
       expect(station).not.toHaveProperty('isMonitor');
       expect(station).not.toHaveProperty('parameters');
+    }
+  });
+
+  it('filters by `q` (name substring match)', async () => {
+    const client = createFahsaiClient();
+
+    const result = await client.get<StationsApiResponse>('/api/stations', {
+      bbox: FULL_BBOX,
+      q: 'Bankhaohin',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('Expected a successful response');
+    expect(result.value.data.length).toBeGreaterThan(0);
+    for (const station of result.value.data) {
+      expect(station.name.toLowerCase()).toContain('bankhaohin');
     }
   });
 });
