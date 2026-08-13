@@ -1,10 +1,11 @@
 import { asArray } from '../../shared/as-array.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../../shared/fahsai-client/client.js';
+import { fetchAndSummarize } from '../../shared/fetch-summarize.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
 import { strideSample } from '../../shared/stride-sample.js';
-import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
+import { buildToolError } from '../../shared/tool-response.js';
 import { parseWindDirOrNull } from '../../shared/wind.js';
 import type {
   GetWeatherInput,
@@ -160,8 +161,8 @@ export function emptyWeatherSummary(): WeatherSummary {
   return { total: 0, cells: [], summary: EMPTY_AGGREGATE };
 }
 
-// Shared fetch -> 404-handling -> summarize -> respond sequence, mirroring
-// fetchAndSummarizeFires in shared/fires/handler.ts.
+// Fetch -> 404-handling -> summarize -> respond, via the shared fetchAndSummarize sequence
+// (shared/fetch-summarize.ts) used by every bbox/date-scoped tool.
 async function fetchAndSummarizeWeather(
   client: FahsaiClient,
   path: string,
@@ -170,18 +171,13 @@ async function fetchAndSummarizeWeather(
   notFoundNote: string,
   locationNote?: string,
 ): Promise<WeatherToolResult> {
-  const fetchResult = await client.get<WeatherApiResponse>(path, params);
-
-  if (!fetchResult.ok) {
-    if (fetchResult.error.kind === 'not-found') {
-      return buildToolResponse(emptyWeatherSummary(), locationNote, notFoundNote);
-    }
-    return buildToolError(fetchResult.error.message);
-  }
-
-  const data = asArray<WeatherGridPointRaw>(fetchResult.value?.data);
-
-  return buildToolResponse(summarizeWeather(data, includeRawPoints), locationNote);
+  return fetchAndSummarize(client, path, params, {
+    extractData: (body) => asArray<WeatherGridPointRaw>((body as WeatherApiResponse | undefined)?.data),
+    summarize: (points) => summarizeWeather(points, includeRawPoints),
+    emptySummary: emptyWeatherSummary(),
+    notFoundNote,
+    locationNote,
+  });
 }
 
 export function createGetWeatherHandler(deps: WeatherToolDeps) {

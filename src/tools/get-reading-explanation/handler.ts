@@ -1,8 +1,7 @@
-import type { FahsaiClient, FahsaiError } from '../../shared/fahsai-client/client.js';
-import { fetchLatestDate } from '../../shared/latest-date.js';
+import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
+import { resolveDateOrLatest } from '../../shared/latest-date.js';
 import { findNearestStation } from '../../shared/nearest-station/handler.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
-import type { Result } from '../../shared/result.js';
 import { buildIgnoredFieldsNote, resolveLocationInput } from '../../shared/resolve-location.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type { GetReadingExplanationInput, ReadingExplanationToolResult, ScientificContext } from './schema.js';
@@ -18,16 +17,6 @@ type ReadingExplanationSummary = Partial<ScientificContext> & { readonly note?: 
 
 function noReadingNote(stationId: string, date: string): string {
   return `No reading explanation available for station ${stationId} on ${date}.`;
-}
-
-// Resolved once and reused for both the nearest-station lookup and the explain/context call —
-// otherwise each would independently default to "latest available date" server-side, and those
-// two defaults could disagree (e.g. today has no ingested reading yet). A no-op (no network call)
-// once a date is already known, so calling this after station resolution has already succeeded
-// costs nothing extra.
-async function resolveDate(client: FahsaiClient, date: string | undefined): Promise<Result<string, FahsaiError>> {
-  if (date !== undefined) return { ok: true, value: date };
-  return fetchLatestDate(client);
 }
 
 // station_id takes precedence over place/bbox/radius_km when both are somehow given (JOO-53) —
@@ -61,7 +50,7 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
       }
       locationNote = locationResult.value.note;
 
-      const dateResult = await resolveDate(deps.client, date);
+      const dateResult = await resolveDateOrLatest(deps.client, date);
       if (!dateResult.ok) {
         return buildToolError(dateResult.error.message);
       }
@@ -79,7 +68,12 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
     }
     const { stationId, lat, lng } = stationResult.value;
 
-    const dateResult = await resolveDate(deps.client, date);
+    // Resolved once and reused for both the nearest-station lookup and this explain/context
+    // call — otherwise each would independently default to "latest available date" server-side,
+    // and those two defaults could disagree (e.g. today has no ingested reading yet).
+    // resolveDateOrLatest is a no-op (no network call) once `date` is already known, so calling
+    // it again here after the bbox-path branch above already resolved it costs nothing extra.
+    const dateResult = await resolveDateOrLatest(deps.client, date);
     if (!dateResult.ok) {
       return buildToolError(dateResult.error.message);
     }

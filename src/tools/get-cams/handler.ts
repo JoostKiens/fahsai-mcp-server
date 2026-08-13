@@ -1,10 +1,11 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../../shared/fahsai-client/client.js';
+import { fetchAndSummarize } from '../../shared/fetch-summarize.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
 import { strideSample } from '../../shared/stride-sample.js';
-import { buildToolError, buildToolResponse, combineNotes } from '../../shared/tool-response.js';
+import { buildToolError, combineNotes } from '../../shared/tool-response.js';
 import {
   CAMS_GRID_MAX,
   type CamsAreaSummary,
@@ -135,8 +136,20 @@ export function emptyCamsSummary(): CamsSummary {
   return { total: 0, summary: computeAreaSummary([]) };
 }
 
-// Shared fetch -> 404-handling -> summarize -> respond sequence, mirroring
-// fetchAndSummarizeWeather in tools/get-weather/handler.ts.
+// Guard against a malformed success body (missing/renamed `data`, or non-array fields) instead
+// of letting downstream indexing throw. CAMS's columnar shape is unique to this tool, so unlike
+// shared/as-array.ts (reused by get_fires/get_weather) this guard has exactly one consumer and
+// stays local rather than moving to shared/.
+function guardCamsGrid(value: unknown): CamsGridRaw {
+  const raw = value as Partial<CamsGridRaw> | undefined;
+  if (raw && Array.isArray(raw.lats) && Array.isArray(raw.lngs) && Array.isArray(raw.pm25s)) {
+    return raw as CamsGridRaw;
+  }
+  return { lats: [], lngs: [], pm25s: [] };
+}
+
+// Fetch -> 404-handling -> summarize -> respond, via the shared fetchAndSummarize sequence
+// (shared/fetch-summarize.ts) used by every bbox/date-scoped tool.
 async function fetchAndSummarizeCams(
   client: FahsaiClient,
   params: FahsaiQueryParams,
@@ -144,24 +157,13 @@ async function fetchAndSummarizeCams(
   notFoundNote: string,
   locationNote?: string,
 ): Promise<CamsToolResult> {
-  const fetchResult = await client.get<CamsApiResponse>('/api/cams', params);
-
-  if (!fetchResult.ok) {
-    if (fetchResult.error.kind === 'not-found') {
-      return buildToolResponse(emptyCamsSummary(), locationNote, notFoundNote);
-    }
-    return buildToolError(fetchResult.error.message);
-  }
-
-  // Guard against a malformed success body (missing/renamed `data`, or non-array fields)
-  // instead of letting downstream indexing throw.
-  const raw = fetchResult.value?.data;
-  const grid: CamsGridRaw =
-    raw && Array.isArray(raw.lats) && Array.isArray(raw.lngs) && Array.isArray(raw.pm25s)
-      ? raw
-      : { lats: [], lngs: [], pm25s: [] };
-
-  return buildToolResponse(summarizeCams(grid, includeRawGrid), locationNote);
+  return fetchAndSummarize(client, '/api/cams', params, {
+    extractData: (body) => guardCamsGrid((body as CamsApiResponse | undefined)?.data),
+    summarize: (grid) => summarizeCams(grid, includeRawGrid),
+    emptySummary: emptyCamsSummary(),
+    notFoundNote,
+    locationNote,
+  });
 }
 
 export function createGetCamsHandler(deps: CamsToolDeps) {

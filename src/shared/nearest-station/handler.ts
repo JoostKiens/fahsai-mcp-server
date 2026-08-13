@@ -1,6 +1,6 @@
 import { formatBboxParam, type BoundingBox } from '../bbox.js';
 import type { FahsaiClient, FahsaiError } from '../fahsai-client/client.js';
-import { fetchLatestDate } from '../latest-date.js';
+import { resolveDateOrLatest } from '../latest-date.js';
 import type { Result } from '../result.js';
 import type { StationReadingLatestRaw, StationReadingsApiResponse } from '../station-readings.js';
 
@@ -102,12 +102,9 @@ async function resolveByBbox(
   bbox: BoundingBox,
   date?: string,
 ): Promise<Result<NearestStation, NearestStationError>> {
-  let resolvedDate = date;
-  if (resolvedDate === undefined) {
-    const latestDateResult = await fetchLatestDate(client);
-    if (!latestDateResult.ok) return latestDateResult;
-    resolvedDate = latestDateResult.value;
-  }
+  const dateResult = await resolveDateOrLatest(client, date);
+  if (!dateResult.ok) return dateResult;
+  const resolvedDate = dateResult.value;
 
   const fetchResult = await client.get<StationReadingsApiResponse>('/api/station-readings/latest', {
     bbox: formatBboxParam(bbox),
