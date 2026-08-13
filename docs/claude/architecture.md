@@ -29,7 +29,7 @@ src/
     aqi.ts, wind.ts, bbox.ts,          # small single-file cross-cutting utilities, each used by
     date-range.ts, latest-date.ts,      # multiple tools or shared modules
     station-readings.ts, tool-descriptions.ts,
-    tool-response.ts, result.ts
+    resolve-location.ts, tool-response.ts, result.ts
 ```
 
 Two-layer, colocated-per-tool structure (JOO-43): each tool owns its schema and handler in one folder; `shared/` holds only what's genuinely reused across tools. **Import boundaries are enforced by ESLint (`import-x/no-restricted-paths`), not just convention:** `shared/*` must never import from `tools/*`, and `tools/<a>/*` must never import from `tools/<b>/*` — if two tools need the same thing, promote it into `shared/` instead of reaching across. The rule of thumb for where logic lives: if it's used by exactly one tool, it stays in that tool's own folder (even if it's meaty, like `get-station-baseline/handler.ts`); it only moves to `shared/` once a second tool needs it (like `shared/fires/`, used by both fire tools). See `mcp-tools.md` for the full checklist when adding or changing a tool.
