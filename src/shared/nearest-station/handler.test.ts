@@ -18,7 +18,7 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: STATIONS_BY_DISTANCE } });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, DATE);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('Expected success result');
@@ -33,7 +33,7 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: STATIONS_ALL_BEYOND_CUTOFF } });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, DATE);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('Expected failure result');
@@ -50,7 +50,7 @@ describe('findNearestStation', () => {
     });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, DATE);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('Expected failure result');
@@ -64,7 +64,7 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: EMPTY_STATION_READINGS } });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, DATE);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('Expected failure result');
@@ -78,7 +78,7 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: STATIONS_MIXED_DATES } });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, DATE);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('Expected success result');
@@ -89,13 +89,13 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: STATIONS_MIXED_DATES } });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, '2026-07-24');
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: '2026-07-24' });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('Expected success result');
     expect(result.value.stationId).toBe('wrong-date');
 
-    const emptyResult = await findNearestStation(client, CHIANG_MAI_BBOX, '2099-01-01');
+    const emptyResult = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: '2099-01-01' });
     expect(emptyResult).toEqual({
       ok: false,
       error: { kind: 'no-nearby-station', message: 'No station has a reading for 2099-01-01.' },
@@ -111,7 +111,7 @@ describe('findNearestStation', () => {
     });
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX });
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('Expected success result');
@@ -131,7 +131,7 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue(latestDateError);
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX });
 
     expect(result).toEqual(latestDateError);
   });
@@ -144,7 +144,48 @@ describe('findNearestStation', () => {
     const get = vi.fn().mockResolvedValue(serverError);
     const client = fakeClient(get);
 
-    const result = await findNearestStation(client, CHIANG_MAI_BBOX, DATE);
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
+
+    expect(result).toEqual(serverError);
+  });
+
+  it('returns a known stationId directly, with no distance calculation', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValue({ ok: true, value: { id: 'known-station', lat: 13.36, lng: 100.98 } });
+    const client = fakeClient(get);
+
+    const result = await findNearestStation(client, { stationId: 'known-station' });
+
+    expect(result).toEqual({ ok: true, value: { stationId: 'known-station', lat: 13.36, lng: 100.98 } });
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledWith('/api/stations/known-station');
+  });
+
+  it('returns station-not-found for an unknown stationId, distinct from no-nearby-station', async () => {
+    const get = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { kind: 'not-found', status: 404, message: 'Station not found' },
+    });
+    const client = fakeClient(get);
+
+    const result = await findNearestStation(client, { stationId: 'unknown-station' });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('Expected failure result');
+    expect(result.error.kind).toBe('station-not-found');
+    expect(result.error.kind).not.toBe('no-nearby-station');
+  });
+
+  it('propagates a non-404 FahsaiError from the single-station lookup unchanged', async () => {
+    const serverError = {
+      ok: false,
+      error: { kind: 'server-error' as const, status: 500, message: 'Fahsai API server error' },
+    };
+    const get = vi.fn().mockResolvedValue(serverError);
+    const client = fakeClient(get);
+
+    const result = await findNearestStation(client, { stationId: 'known-station' });
 
     expect(result).toEqual(serverError);
   });

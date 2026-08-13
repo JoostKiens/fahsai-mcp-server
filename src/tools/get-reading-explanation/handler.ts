@@ -39,7 +39,7 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
       date = latestDateResult.value;
     }
 
-    const stationResult = await findNearestStation(deps.client, bbox, date);
+    const stationResult = await findNearestStation(deps.client, { bbox, date });
     if (!stationResult.ok) {
       if (stationResult.error.kind === 'no-nearby-station') {
         const summary: ReadingExplanationSummary = {};

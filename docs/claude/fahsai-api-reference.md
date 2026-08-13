@@ -51,6 +51,13 @@ GET /api/stations?bbox=...
   parameters fields that don't exist on any live station.
   → get_stations
 
+GET /api/stations/:id
+  Single station lookup — VERIFIED live 2026-08-13 (JOO-50 follow-up). Returns one Station object
+  (unwrapped, not { data: ... }) on a match, 404 { "error": "Station not found" } on an unknown
+  id. Added specifically because the list route's `id`/`stationId` query params don't filter
+  (see the /api/stations entry below) — this is the real single-station lookup that route lacked.
+  → shared/nearest-station's stationId-bypass path (JOO-50)
+
 GET /api/weather?date=YYYY-MM-DD&bbox=...
   Weather grid. date REQUIRED (400 if absent). 404 if not yet ingested for that date.
   → get_weather
@@ -178,6 +185,10 @@ interface StationReadingHistory {
 // this doc previously got wrong: the response is wrapped as { data: Station[] }, not a bare
 // array; and there is no isMobile, isMonitor, or parameters field on any live station — those
 // were never real. A no-match bbox is a 200 with an empty `data` array, not a 404.
+// VERIFIED 2026-08-08 (JOO-50): `id` and `stationId` query params are silently ignored on this
+// route — both return the same full unfiltered list, filtering by id here doesn't work. A real
+// single-station lookup was added afterward at GET /api/stations/:id (see above, JOO-50
+// follow-up, verified live 2026-08-13) — use that instead of scanning this route's full list.
 interface StationsApiResponse {
   data: Station[];
 }
