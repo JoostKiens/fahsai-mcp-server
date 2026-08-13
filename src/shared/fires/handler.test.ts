@@ -7,9 +7,7 @@ import {
   emptyFireSummary,
   fetchAndSummarizeFires,
   filterByConfidence,
-  formatConfidenceParam,
   summarizeFires,
-  validateFiresRange,
 } from './handler.js';
 
 describe('summarizeFires', () => {
@@ -110,58 +108,6 @@ describe('filterByConfidence', () => {
   });
 });
 
-describe('formatConfidenceParam', () => {
-  it('joins a non-empty array into a comma-separated string', () => {
-    expect(formatConfidenceParam(['high', 'nominal'])).toBe('high,nominal');
-  });
-
-  it('returns undefined for an empty array, not an empty string', () => {
-    expect(formatConfidenceParam([])).toBeUndefined();
-  });
-
-  it('returns undefined when omitted', () => {
-    expect(formatConfidenceParam(undefined)).toBeUndefined();
-  });
-});
-
-describe('validateFiresRange', () => {
-  it('accepts a range exactly at the 10-day cap', () => {
-    expect(validateFiresRange('2026-04-01', '2026-04-11')).toEqual({ ok: true, value: undefined });
-  });
-
-  it('rejects a range one day over the cap', () => {
-    const result = validateFiresRange('2026-04-01', '2026-04-12');
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('Expected failure result');
-    expect(result.error).toContain('maximum of 10 days');
-  });
-
-  it('rejects end before start', () => {
-    const result = validateFiresRange('2026-04-10', '2026-04-05');
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('Expected failure result');
-    expect(result.error).toBe('`end` must not be before `start`.');
-  });
-
-  it('accepts a single-day range (start === end)', () => {
-    expect(validateFiresRange('2026-04-01', '2026-04-01')).toEqual({ ok: true, value: undefined });
-  });
-
-  it('rejects a day-of-month that does not exist, instead of silently rolling it over', () => {
-    const result = validateFiresRange('2026-02-25', '2026-02-30');
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('Expected failure result');
-    expect(result.error).toBe('"2026-02-30" is not a valid calendar date.');
-  });
-
-  it('rejects a month-end overflow (April has 30 days)', () => {
-    const result = validateFiresRange('2026-04-25', '2026-04-31');
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('Expected failure result');
-    expect(result.error).toBe('"2026-04-31" is not a valid calendar date.');
-  });
-});
-
 function fakeClient(get: FahsaiClient['get']): FahsaiClient {
   return { get };
 }
@@ -182,7 +128,7 @@ describe('fetchAndSummarizeFires', () => {
     expect(structured.total).toBe(4);
   });
 
-  it('sends the confidence param and additionally filters client-side, since the API param has no effect', async () => {
+  it('filters client-side without sending a confidence param, since the API param has no effect', async () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
 
     const result = await fetchAndSummarizeFires(
@@ -193,7 +139,7 @@ describe('fetchAndSummarizeFires', () => {
       'not found',
     );
 
-    expect(get).toHaveBeenCalledWith('/api/fires', { date: '2026-04-18', confidence: 'high' });
+    expect(get).toHaveBeenCalledWith('/api/fires', { date: '2026-04-18' });
     const structured = result.structuredContent as { total: number };
     expect(structured.total).toBe(1);
   });

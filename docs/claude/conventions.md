@@ -8,7 +8,7 @@ Concrete rules, not vague principles. If you're about to write code that contrad
 
 - **Default to pure functions.** Given the same input, always return the same output, no side effects. This applies to all validation, summarization, and AQI/wind classification logic.
 - **Classes are allowed only for stateful infrastructure** — things that genuinely have a lifecycle and internal mutable state:
-  - `Cache<K, V>` (the place-resolver's TTL cache)
+  - `Cache<V>` (the place-resolver's TTL cache — keyed by `string` only, so no `K` type parameter)
   - The FahSai or Nominatim HTTP client, if it holds connection-level state (otherwise prefer a factory function returning a plain object of functions)
   - Everything else — tool handlers, summarization, validation, formatting — is functions and plain data, not classes.
 - **Immutability by default.** All `interface`/`type` fields are `readonly` unless there's a specific reason for mutation (there rarely is outside the `Cache` internals). Use `as const` for literal unions and fixed config objects. Enforce this with a strict `tsconfig.json` (`readonly` arrays via `ReadonlyArray<T>`/`readonly T[]`) — don't rely on convention alone; if `eslint-plugin-functional` is added, prefer its `no-mutation` and `prefer-readonly-type` rules over immutability by discipline.
@@ -75,7 +75,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | `scaffolding`    | Project skeleton, transports (STDIO), build/tooling config, env setup                                            |
 | `client`         | FahSai API HTTP client, error typing (`src/shared/fahsai-client/`)                                                |
 | `place-resolver` | Nominatim geocoding, the place→bbox resolver, its in-process cache and throttling (`src/shared/place-resolver/`)  |
-| `cache`          | The generic `Cache<K,V>` TTL cache                                                                                |
+| `cache`          | The `Cache<V>` TTL cache                                                                                          |
 | `shared`         | Cross-tool logic under `src/shared/` not covered by a more specific scope above (`aqi.ts`, `wind.ts`, `bbox.ts`, `shared/fires/`, ...) |
 | `tools`          | Any MCP tool logic (`src/tools/<name>/`) — use a sub-scope like `tools/get_weather` if a commit touches only one tool |
 | `docs`           | README, CLAUDE.md, `docs/claude/*`                                                                               |

@@ -4,8 +4,6 @@ export type CompassLabel = (typeof DIRECTIONS)[number];
 export interface WindDir {
   readonly fromLabel: CompassLabel;
   readonly toLabel: CompassLabel;
-  readonly fromQuadrant: CompassLabel;
-  readonly toQuadrant: CompassLabel;
 }
 
 export function parseWindDir(directionDeg: number): WindDir {
@@ -15,7 +13,7 @@ export function parseWindDir(directionDeg: number): WindDir {
   const idx = Math.round((((directionDeg % 360) + 360) % 360) / 45) % 8;
   const fromLabel = DIRECTIONS[idx];
   const toLabel = DIRECTIONS[(idx + 4) % 8];
-  return { fromLabel, toLabel, fromQuadrant: fromLabel, toQuadrant: toLabel };
+  return { fromLabel, toLabel };
 }
 
 // parseWindDir throws for a non-finite directionDeg — a real possibility for any tool reading

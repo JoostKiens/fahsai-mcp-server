@@ -1,4 +1,5 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
+import { asArray } from '../../shared/as-array.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type {
@@ -195,9 +196,7 @@ export function createGetStationBaselineHandler(deps: StationBaselineToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against
-    // a malformed success body instead of letting downstream array methods throw.
-    const data = Array.isArray(fetchResult.value.data) ? fetchResult.value.data : [];
+    const data = asArray<StationBaselineDayRaw>(fetchResult.value.data);
     const minYear = fetchResult.value.minYear ?? null;
     const maxYear = fetchResult.value.maxYear ?? null;
 

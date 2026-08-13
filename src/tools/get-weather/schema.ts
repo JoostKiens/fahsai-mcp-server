@@ -46,8 +46,6 @@ export interface WeatherSummary {
 const windOutputSchema = z.object({
   fromLabel: z.string(),
   toLabel: z.string(),
-  fromQuadrant: z.string(),
-  toQuadrant: z.string(),
 });
 
 const weatherAggregateOutputSchema = z.object({

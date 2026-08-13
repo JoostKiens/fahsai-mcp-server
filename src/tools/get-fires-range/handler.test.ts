@@ -17,7 +17,6 @@ describe('createGetFiresRangeHandler', () => {
       start: '2026-04-01',
       end: '2026-04-05',
       bbox: '98.5,18.3,99.5,19.3',
-      confidence: undefined,
     });
     expect(result.isError).toBeUndefined();
     const structured = result.structuredContent as { total: number };
@@ -38,16 +37,6 @@ describe('createGetFiresRangeHandler', () => {
 
     const structured = result.structuredContent as { total: number };
     expect(structured.total).toBe(1);
-  });
-
-  it('omits the confidence param (rather than sending an empty string) when given an empty array', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
-
-    await handler({ place: 'Chiang Mai', start: '2026-04-01', end: '2026-04-05', confidence: [] });
-
-    expect(get).toHaveBeenCalledWith('/api/fires/range', expect.objectContaining({ confidence: undefined }));
   });
 
   it('rejects an 11-day range without ever calling the client', async () => {

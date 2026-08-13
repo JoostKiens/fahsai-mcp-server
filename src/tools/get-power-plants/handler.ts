@@ -1,3 +1,4 @@
+import { asArray } from '../../shared/as-array.js';
 import { pointInBbox } from '../../shared/bbox.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
@@ -111,9 +112,7 @@ export function createGetPowerPlantsHandler(deps: PowerPlantsToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    // Guard against a malformed success body rather than trusting the bare cast — same
-    // defensive pattern as every other tool that reads an unvalidated Fahsai response.
-    const features = Array.isArray(fetchResult.value?.features) ? fetchResult.value.features : [];
+    const features = asArray<PowerPlantFeatureRaw>(fetchResult.value?.features);
     const plants = features.map(toPowerPlant).filter((plant) => pointInBbox(plant.lat, plant.lng, bbox));
 
     return buildToolResponse(summarizePowerPlants(plants, input.include_all ?? false), locationNote);

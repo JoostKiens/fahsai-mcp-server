@@ -9,10 +9,6 @@ export const STATION_READINGS_HISTORY_MAX_HOURS = 168;
 
 export const getStationReadingsHistoryInputSchema = z.object({
   station_id: z.string().min(1),
-  // Not a literal `'pm25'`: the live API confirmed-ignores this param regardless of value
-  // (see handler.ts), so rejecting anything other than 'pm25' would just be confusing
-  // friction with no behavioral payoff — accept and ignore, like the API does.
-  parameter: z.string().default('pm25'),
   hours: z.number().int().positive().max(STATION_READINGS_HISTORY_MAX_HOURS).default(24),
 });
 

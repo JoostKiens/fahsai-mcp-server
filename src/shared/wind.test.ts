@@ -30,12 +30,6 @@ describe('parseWindDir', () => {
     expect(parseWindDir(22.6)).toMatchObject({ fromLabel: 'NE' });
   });
 
-  it('sets fromQuadrant === fromLabel and toQuadrant === toLabel', () => {
-    const result = parseWindDir(135);
-    expect(result.fromQuadrant).toBe(result.fromLabel);
-    expect(result.toQuadrant).toBe(result.toLabel);
-  });
-
   it('throws RangeError for NaN', () => {
     expect(() => parseWindDir(NaN)).toThrow(RangeError);
   });

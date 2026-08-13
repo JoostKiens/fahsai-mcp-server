@@ -3,6 +3,7 @@ import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../../shared/fahsai-client/client.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
+import { strideSample } from '../../shared/stride-sample.js';
 import { buildToolError, buildToolResponse, combineNotes } from '../../shared/tool-response.js';
 import {
   CAMS_GRID_MAX,
@@ -75,22 +76,19 @@ export function computeAreaSummary(pm25s: readonly number[]): CamsAreaSummary {
   };
 }
 
-// Evenly strides across the flattened parallel arrays by index — preserves spatial coverage
-// of the field. Deliberately not top-N by pm25 value (unlike summarizeFires' FRP ranking):
-// fires are discrete severity-ranked events, CAMS pm25 is a continuous spatial field, so
-// ranking by value would bias the sample toward hotspots and misrepresent the area.
-function sampleIndices(count: number, max: number): number[] {
-  if (count <= max) return Array.from({ length: count }, (_, i) => i);
-  const stride = count / max;
-  return Array.from({ length: max }, (_, i) => Math.floor(i * stride));
-}
-
 function buildGrid(
   grid: CamsGridRaw,
   n: number,
   max: number,
 ): { points: CamsGridPoint[]; truncated: boolean } {
-  const indices = sampleIndices(n, max);
+  // Evenly strides across the flattened parallel arrays by index — preserves spatial coverage
+  // of the field. Deliberately not top-N by pm25 value (unlike summarizeFires' FRP ranking):
+  // fires are discrete severity-ranked events, CAMS pm25 is a continuous spatial field, so
+  // ranking by value would bias the sample toward hotspots and misrepresent the area.
+  const indices = strideSample(
+    Array.from({ length: n }, (_, i) => i),
+    max,
+  );
   const points = indices.map((i) => {
     const pm25 = grid.pm25s[i];
     return {

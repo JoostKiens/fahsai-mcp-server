@@ -43,7 +43,7 @@ describe('summarizeStationHistory', () => {
         windSpeedKmh: 5.5,
         precipitationSumMm: 24.6,
         relativeHumidity2m: 44,
-        wind: { fromLabel: 'NW', toLabel: 'SE', fromQuadrant: 'NW', toQuadrant: 'SE' },
+        wind: { fromLabel: 'NW', toLabel: 'SE' },
       },
       baseline: {
         medianPm25: 16,
