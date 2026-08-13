@@ -31,6 +31,13 @@ describe('validateDateRange', () => {
     });
   });
 
+  it('rejects an invalid start date', () => {
+    const result = validateDateRange('2026-02-30', '2026-04-01', 10, 'get_fires_range');
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('Expected failure result');
+    expect(result.error).toBe('"2026-02-30" is not a valid calendar date.');
+  });
+
   it('rejects a day-of-month that does not exist, instead of silently rolling it over', () => {
     const result = validateDateRange('2026-02-25', '2026-02-30', 10, 'get_fires_range');
     expect(result.ok).toBe(false);

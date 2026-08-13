@@ -74,6 +74,23 @@ describe('summarizeStationBaselineDefault', () => {
     expect(summary.note).toBeUndefined();
   });
 
+  it('takes the middle value (not an average) when the season has an odd number of days', () => {
+    // peak_burning rows: Feb 1 (40), Mar 15 (60), Apr 30 (35) -> sorted [35, 40, 60], median = 40.
+    const summary = summarizeStationBaselineDefault(
+      NORMAL_STATION_BASELINE,
+      2021,
+      2026,
+      '225572',
+      new Date('2026-03-15T00:00:00Z'),
+    );
+
+    expect(summary.season).toMatchObject({
+      season: 'peak_burning',
+      daysCovered: 3,
+      medianOfMedianPm25: 40,
+    });
+  });
+
   it('notes when there is no row for today\'s day-of-year', () => {
     const summary = summarizeStationBaselineDefault(
       NORMAL_STATION_BASELINE,

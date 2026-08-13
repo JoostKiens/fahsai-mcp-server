@@ -70,6 +70,26 @@ describe('createFahsaiClient', () => {
     expect(result.error.message).toContain('date param required');
   });
 
+  it('prefers the message field over error when both are present', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      text: () => Promise.resolve(JSON.stringify({ message: 'Rate limited', error: 'rate_limited' })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = createFahsaiClient();
+    const result = await client.get('/api/fires');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected client-error result');
+    }
+    expect(result.error.message).toContain('Rate limited');
+    expect(result.error.message).not.toContain('rate_limited');
+  });
+
   it('types a 5xx as a server error', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
