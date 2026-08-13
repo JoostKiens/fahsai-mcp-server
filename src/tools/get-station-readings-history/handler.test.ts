@@ -70,20 +70,10 @@ describe('summarizeStationReadingsHistory', () => {
 });
 
 describe('getStationReadingsHistoryInputSchema', () => {
-  it('defaults hours to 24 and parameter to pm25 when omitted', () => {
+  it('defaults hours to 24 when omitted', () => {
     const parsed = getStationReadingsHistoryInputSchema.parse({ station_id: '6289999' });
 
     expect(parsed.hours).toBe(24);
-    expect(parsed.parameter).toBe('pm25');
-  });
-
-  it('accepts a non-pm25 parameter value rather than rejecting it (confirmed API no-op)', () => {
-    const parsed = getStationReadingsHistoryInputSchema.parse({
-      station_id: '6289999',
-      parameter: 'pm10',
-    });
-
-    expect(parsed.parameter).toBe('pm10');
   });
 
   it('rejects hours above the 168-hour cap', () => {
@@ -103,7 +93,7 @@ describe('createGetStationReadingsHistoryHandler', () => {
       .mockResolvedValue({ ok: true, value: { data: SMALL_STATION_READINGS_HISTORY } });
     const handler = createGetStationReadingsHistoryHandler({ client: fakeClient(get) });
 
-    const result = await handler({ station_id: '6289999', parameter: 'pm25', hours: 168 });
+    const result = await handler({ station_id: '6289999', hours: 168 });
 
     expect(get).toHaveBeenCalledWith('/api/station-readings/history', {
       station_id: '6289999',
@@ -119,28 +109,18 @@ describe('createGetStationReadingsHistoryHandler', () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: null } });
     const handler = createGetStationReadingsHistoryHandler({ client: fakeClient(get) });
 
-    const result = await handler({ station_id: '6289999', parameter: 'pm25', hours: 24 });
+    const result = await handler({ station_id: '6289999', hours: 24 });
 
     expect(result.isError).toBeUndefined();
     const structured = result.structuredContent as { total: number };
     expect(structured.total).toBe(0);
   });
 
-  it('does not send a `parameter` query param (it is a no-op on the live API)', async () => {
-    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
-    const handler = createGetStationReadingsHistoryHandler({ client: fakeClient(get) });
-
-    await handler({ station_id: '6289999', parameter: 'pm25', hours: 24 });
-
-    const [, params] = get.mock.calls[0] as [string, Record<string, unknown>];
-    expect(params).not.toHaveProperty('parameter');
-  });
-
   it('treats an empty data array as "no data" — covers both an invalid station_id and a genuinely empty window', async () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
     const handler = createGetStationReadingsHistoryHandler({ client: fakeClient(get) });
 
-    const result = await handler({ station_id: 'nonexistent-id-999', parameter: 'pm25', hours: 24 });
+    const result = await handler({ station_id: 'nonexistent-id-999', hours: 24 });
 
     expect(result.isError).toBeUndefined();
     const structured = result.structuredContent as { total: number; note?: string };
@@ -158,7 +138,7 @@ describe('createGetStationReadingsHistoryHandler', () => {
     });
     const handler = createGetStationReadingsHistoryHandler({ client: fakeClient(get) });
 
-    const result = await handler({ station_id: '6289999', parameter: 'pm25', hours: 24 });
+    const result = await handler({ station_id: '6289999', hours: 24 });
 
     expect(result.isError).toBe(true);
   });

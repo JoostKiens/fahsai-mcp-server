@@ -61,8 +61,6 @@ const stationHistoryWeatherOutputSchema = z.object({
     .object({
       fromLabel: z.string(),
       toLabel: z.string(),
-      fromQuadrant: z.string(),
-      toQuadrant: z.string(),
     })
     .nullable(),
 });

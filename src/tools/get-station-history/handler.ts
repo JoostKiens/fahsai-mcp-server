@@ -1,4 +1,5 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
+import { asArray } from '../../shared/as-array.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import { parseWindDirOrNull } from '../../shared/wind.js';
@@ -128,9 +129,7 @@ export function createGetStationHistoryHandler(deps: StationHistoryToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against
-    // a malformed success body (e.g. `{ days: null }`) instead of letting `.map` throw.
-    const days = Array.isArray(fetchResult.value.days) ? fetchResult.value.days : [];
+    const days = asArray<StationHistoryDayRaw>(fetchResult.value.days);
 
     if (days.length === 0) {
       return buildToolResponse(

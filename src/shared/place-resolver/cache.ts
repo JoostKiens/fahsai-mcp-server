@@ -3,12 +3,12 @@ interface CacheEntry<V> {
   readonly expiresAt: number;
 }
 
-export class Cache<K, V> {
-  private readonly store = new Map<K, CacheEntry<V>>();
+export class Cache<V> {
+  private readonly store = new Map<string, CacheEntry<V>>();
 
   constructor(private readonly ttlMs: number) {}
 
-  get(key: K): V | undefined {
+  get(key: string): V | undefined {
     const entry = this.store.get(key);
     if (!entry) {
       return undefined;
@@ -20,7 +20,7 @@ export class Cache<K, V> {
     return entry.value;
   }
 
-  set(key: K, value: V): void {
+  set(key: string, value: V): void {
     this.store.set(key, { value, expiresAt: Date.now() + this.ttlMs });
   }
 }

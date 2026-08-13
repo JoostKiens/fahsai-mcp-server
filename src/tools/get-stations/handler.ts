@@ -1,3 +1,4 @@
+import { asArray } from '../../shared/as-array.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
@@ -42,13 +43,10 @@ export function createGetStationsHandler(deps: StationsToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against
-    // a malformed success body (e.g. a bare `null`, or a `data` field that's missing/renamed)
-    // instead of letting `.data` access or downstream array methods throw. A bbox with
-    // genuinely zero stations is a normal, common result (verified live), so this is
-    // deliberately silent rather than attaching a "may be malformed" note — unlike
+    // A bbox with genuinely zero stations is a normal, common result (verified live), so this
+    // is deliberately silent rather than attaching a "may be malformed" note — unlike
     // get-station-history, where an empty result is never a valid response on its own.
-    const data = Array.isArray(fetchResult.value?.data) ? fetchResult.value.data : [];
+    const data = asArray<StationRaw>(fetchResult.value?.data);
 
     return buildToolResponse(summarizeStations(data), locationNote);
   };

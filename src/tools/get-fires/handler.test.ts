@@ -16,24 +16,10 @@ describe('createGetFiresHandler', () => {
     expect(get).toHaveBeenCalledWith('/api/fires', {
       date: '2026-04-18',
       bbox: '98.5,18.3,99.5,19.3',
-      confidence: undefined,
     });
     expect(result.isError).toBeUndefined();
     const structured = result.structuredContent as { total: number };
     expect(structured.total).toBe(4);
-  });
-
-  it('joins the confidence array into a comma-separated query param', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
-    const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
-
-    await handler({ place: 'Chiang Mai', date: '2026-04-18', confidence: ['high', 'nominal'] });
-
-    expect(get).toHaveBeenCalledWith(
-      '/api/fires',
-      expect.objectContaining({ confidence: 'high,nominal' }),
-    );
   });
 
   it('filters results by confidence client-side (the API param has no server-side effect)', async () => {
@@ -45,16 +31,6 @@ describe('createGetFiresHandler', () => {
 
     const structured = result.structuredContent as { total: number };
     expect(structured.total).toBe(1);
-  });
-
-  it('omits the confidence param (rather than sending an empty string) when given an empty array', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
-    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
-    const handler = createGetFiresHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
-
-    await handler({ place: 'Chiang Mai', date: '2026-04-18', confidence: [] });
-
-    expect(get).toHaveBeenCalledWith('/api/fires', expect.objectContaining({ confidence: undefined }));
   });
 
   it('treats a 404 as "not ingested yet" rather than an error', async () => {

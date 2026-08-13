@@ -14,17 +14,13 @@ interface CachedPoint {
 
 export interface CreatePlaceResolverOptions {
   readonly cacheTtlSeconds?: number;
-  readonly defaultRadiusKm?: number;
   readonly nominatimClient?: NominatimClient;
 }
 
 export function createPlaceResolver(options: CreatePlaceResolverOptions = {}): PlaceResolver {
-  const cacheTtlSeconds =
-    options.cacheTtlSeconds ?? Number(DEFAULT_CACHE_TTL_SECONDS);
-  const defaultRadiusKm =
-    options.defaultRadiusKm ?? Number(DEFAULT_RADIUS_KM);
+  const cacheTtlSeconds = options.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
   const nominatimClient = options.nominatimClient ?? createNominatimClient();
-  const cache = new Cache<string, CachedPoint>(cacheTtlSeconds * 1000);
+  const cache = new Cache<CachedPoint>(cacheTtlSeconds * 1000);
 
   async function resolve(
     query: string,
@@ -32,7 +28,7 @@ export function createPlaceResolver(options: CreatePlaceResolverOptions = {}): P
   ): Promise<Result<ResolvedPlace, PlaceResolverError>> {
     const trimmedQuery = query.trim();
     const cacheKey = trimmedQuery.toLowerCase();
-    const radiusKm = resolveOptions.radiusKm ?? defaultRadiusKm;
+    const radiusKm = resolveOptions.radiusKm ?? DEFAULT_RADIUS_KM;
 
     let point = cache.get(cacheKey);
     if (!point) {

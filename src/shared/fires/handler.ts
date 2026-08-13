@@ -1,10 +1,7 @@
-import { validateDateRange } from '../date-range.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
-import type { Result } from '../result.js';
 import { buildToolError, buildToolResponse } from '../tool-response.js';
 import {
-  FIRES_RANGE_MAX_DAYS,
   type FireConfidence,
   type FireConfidenceBreakdown,
   type FireSummary,
@@ -131,25 +128,11 @@ export function emptyFireSummary(): FireSummary {
   };
 }
 
-// Empty array means "no filter selected" — same as omitting the field entirely, never an
-// empty-string query param (which the API would treat as an explicit, unmatchable filter).
-// Sent to the API for forward-compatibility even though it currently has no observed effect
-// (see filterByConfidence, which is what actually enforces the filter today).
-export function formatConfidenceParam(confidence?: readonly FireConfidence[]): string | undefined {
-  return confidence && confidence.length > 0 ? confidence.join(',') : undefined;
-}
-
-// Thin wrapper preserving this tool's exact original signature — see shared/date-range.ts
-// for the actual parsing/rollover/day-count/cap logic, shared with get_cams_summary.
-export function validateFiresRange(start: string, end: string): Result<void, string> {
-  const result = validateDateRange(start, end, FIRES_RANGE_MAX_DAYS, 'get_fires_range');
-  return result.ok ? { ok: true, value: undefined } : result;
-}
-
 // Shared fetch -> 404-handling -> filter -> summarize -> respond sequence for both fire
 // tools, so a change to that sequence (e.g. how notes get merged) only has to happen once.
-// `confidence` is applied client-side (see filterByConfidence) in addition to being sent as
-// a query param, since the server-side filter has no observed effect.
+// `confidence` is applied client-side only (see filterByConfidence) — the live API's
+// `confidence` query param has no observable filtering effect (verified 2026-07-26), so it's
+// not sent at all.
 export async function fetchAndSummarizeFires(
   client: FahsaiClient,
   path: string,
@@ -158,10 +141,7 @@ export async function fetchAndSummarizeFires(
   notFoundNote: string,
   locationNote?: string,
 ): Promise<FireToolResult> {
-  const fetchResult = await client.get<FiresApiResponse>(path, {
-    ...params,
-    confidence: formatConfidenceParam(confidence),
-  });
+  const fetchResult = await client.get<FiresApiResponse>(path, params);
 
   if (!fetchResult.ok) {
     if (fetchResult.error.kind === 'not-found') {

@@ -1,4 +1,5 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
+import { asArray } from '../../shared/as-array.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type {
@@ -16,7 +17,8 @@ export interface StationReadingsHistoryToolDeps {
 // verified 2026-07-26 (JOO-31). Leaner than /latest's shape: no stationName/lat/lng/country/
 // attribution, just the series for the one station requested. The `parameter` query param is
 // confirmed a no-op here too (byte-identical results for pm25/pm10/bogus/omitted against the
-// same station+window) — same finding as /latest (JOO-30), so this server doesn't send it.
+// same station+window) — same finding as /latest (JOO-30), so it's neither exposed on this
+// tool's input schema nor sent to the API.
 export interface StationReadingHistoryRaw {
   readonly stationId: string;
   readonly value: number;
@@ -81,7 +83,6 @@ export function createGetStationReadingsHistoryHandler(deps: StationReadingsHist
   return async (
     input: GetStationReadingsHistoryInput,
   ): Promise<StationReadingsHistoryToolResult> => {
-    // `parameter` is not forwarded — confirmed a no-op on this route (see interfaces above).
     const fetchResult = await deps.client.get<StationReadingsHistoryApiResponse>(
       '/api/station-readings/history',
       { station_id: input.station_id, hours: input.hours },
@@ -91,9 +92,7 @@ export function createGetStationReadingsHistoryHandler(deps: StationReadingsHist
       return buildToolError(fetchResult.error.message);
     }
 
-    // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against
-    // a malformed success body (e.g. `{ data: null }`) instead of letting `.length` throw.
-    const data = Array.isArray(fetchResult.value.data) ? fetchResult.value.data : [];
+    const data = asArray<StationReadingHistoryRaw>(fetchResult.value.data);
 
     if (data.length === 0) {
       return buildToolResponse(

@@ -1,4 +1,5 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
+import { asArray } from '../../shared/as-array.js';
 import { validateDateRange } from '../../shared/date-range.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
@@ -69,9 +70,7 @@ export function createGetCamsSummaryHandler(deps: CamsSummaryToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    // Guard against a malformed success body (missing/renamed `data`) instead of letting
-    // downstream array methods throw.
-    const data = Array.isArray(fetchResult.value?.data) ? fetchResult.value.data : [];
+    const data = asArray<CamsSummaryDayRaw>(fetchResult.value?.data);
     return buildToolResponse(summarizeCamsSummary(data));
   };
 }

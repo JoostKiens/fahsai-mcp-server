@@ -1,7 +1,9 @@
+import { asArray } from '../../shared/as-array.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../../shared/fahsai-client/client.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
+import { strideSample } from '../../shared/stride-sample.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import { parseWindDirOrNull } from '../../shared/wind.js';
 import type {
@@ -129,15 +131,6 @@ function toWeatherPoint(raw: WeatherGridPointRaw): WeatherPoint {
   };
 }
 
-// Evenly strides through `points` down to `max` entries rather than truncating to a prefix —
-// a straight prefix would only ever show one corner of the bbox given the API's row-scan
-// point ordering.
-function strideSample<T>(points: readonly T[], max: number): T[] {
-  if (points.length <= max) return [...points];
-  const stride = points.length / max;
-  return Array.from({ length: max }, (_, i) => points[Math.floor(i * stride)]);
-}
-
 export function summarizeWeather(
   points: readonly WeatherGridPointRaw[],
   includeRawPoints: boolean,
@@ -186,10 +179,7 @@ async function fetchAndSummarizeWeather(
     return buildToolError(fetchResult.error.message);
   }
 
-  // fahsai-client casts the parsed JSON straight to T with no runtime check — guard against a
-  // malformed success body (e.g. a bare `null`, or a `data` field that's missing/renamed)
-  // instead of letting `.data` access or downstream array methods throw.
-  const data = Array.isArray(fetchResult.value?.data) ? fetchResult.value.data : [];
+  const data = asArray<WeatherGridPointRaw>(fetchResult.value?.data);
 
   return buildToolResponse(summarizeWeather(data, includeRawPoints), locationNote);
 }
