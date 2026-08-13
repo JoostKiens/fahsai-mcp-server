@@ -1,7 +1,8 @@
 import { asArray } from '../as-array.js';
+import { FAHSAI_DATA_BBOX, formatBboxParam } from '../bbox.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
-import { fetchAndSummarize } from '../fetch-summarize.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
+import { buildToolError, buildToolResponse } from '../tool-response.js';
 import type {
   FireConfidence,
   FireConfidenceBreakdown,
@@ -129,10 +130,31 @@ export function emptyFireSummary(): FireSummary {
   };
 }
 
-// Fetch -> 404-handling -> filter -> summarize -> respond, via the shared fetchAndSummarize
-// sequence (shared/fetch-summarize.ts) used by every bbox/date-scoped tool. `confidence` is
-// applied client-side only (see filterByConfidence) — the live API's `confidence` query param
-// has no observable filtering effect (verified 2026-07-26), so it's not sent at all.
+const FULL_COVERAGE_BBOX_PARAM = formatBboxParam(FAHSAI_DATA_BBOX);
+
+// Shown once a 404 has been confirmed to mean "this period is fully ingested, this area just
+// has no fires" rather than "not ingested yet" — see isPeriodIngested.
+export const CONFIRMED_EMPTY_FIRE_AREA_NOTE = 'There are no fires detected in this area.';
+
+// Re-issues the same request against Fahsai's full default coverage bbox to check whether a
+// date/range has actually finished ingesting, independent of whether the originally-requested
+// (typically much smaller, place-derived) bbox has any fires in it. A 404 against a small bbox
+// is otherwise ambiguous between "not ingested yet" and "ingested, zero fires here" — verified
+// live 2026-08-13: a ~1° bbox and even a ~3°x3° bbox both 404 for a date that 200s with 297
+// real fires against the full default bbox. See fahsai-api-reference.md's /api/fires entry.
+export async function isPeriodIngested(
+  client: FahsaiClient,
+  path: string,
+  params: FahsaiQueryParams,
+): Promise<boolean> {
+  const confirmation = await client.get(path, { ...params, bbox: FULL_COVERAGE_BBOX_PARAM });
+  return confirmation.ok;
+}
+
+// Fetch -> 404-handling -> filter -> summarize -> respond. `confidence` is applied client-side
+// only (see filterByConfidence) — the live API's `confidence` query param has no observable
+// filtering effect (verified 2026-07-26), so it's not sent at all. Unlike get_weather/get_cams
+// (shared/fetch-summarize.ts), a 404 here isn't taken at face value — see isPeriodIngested.
 export async function fetchAndSummarizeFires(
   client: FahsaiClient,
   path: string,
@@ -141,11 +163,25 @@ export async function fetchAndSummarizeFires(
   notFoundNote: string,
   locationNote?: string,
 ): Promise<FireToolResult> {
-  return fetchAndSummarize(client, path, params, {
-    extractData: (body) => asArray<FirePoint>((body as FiresApiResponse | undefined)?.data),
-    summarize: (points) => summarizeFires(filterByConfidence(points, confidence)),
-    emptySummary: emptyFireSummary(),
-    notFoundNote,
-    locationNote,
-  });
+  const fetchResult = await client.get(path, params);
+
+  if (!fetchResult.ok) {
+    if (fetchResult.error.kind !== 'not-found') {
+      return buildToolError(fetchResult.error.message);
+    }
+
+    // A 404 against the full coverage bbox is already unambiguous — nothing to confirm.
+    const alreadyFullCoverage = params.bbox === FULL_COVERAGE_BBOX_PARAM;
+    const confirmedIngested =
+      !alreadyFullCoverage && (await isPeriodIngested(client, path, params));
+
+    return buildToolResponse(
+      emptyFireSummary(),
+      locationNote,
+      confirmedIngested ? CONFIRMED_EMPTY_FIRE_AREA_NOTE : notFoundNote,
+    );
+  }
+
+  const raw = asArray<FirePoint>((fetchResult.value as FiresApiResponse | undefined)?.data);
+  return buildToolResponse(summarizeFires(filterByConfidence(raw, confidence)), locationNote);
 }

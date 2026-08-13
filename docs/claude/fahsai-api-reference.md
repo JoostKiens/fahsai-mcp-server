@@ -11,10 +11,21 @@ All routes return JSON. All accept a `bbox` query param where spatial filtering 
 ```
 GET /api/fires?date=YYYY-MM-DD&bbox=...
   Fire points for a date. Optional confidence=high,nominal filter.
+  A 404 here does NOT necessarily mean the date hasn't finished ingesting — VERIFIED
+  2026-08-13 via direct curl during MCP tool testing (no ticket): for the same fully-ingested
+  date, a small place-derived bbox (99.39,19.94,100.38,20.94, ~1° square) and even a
+  country-sized bbox (98,18,101,21, ~3°x3°) both 404'd with {"error":"No fire data for this
+  date."}, while the full default coverage bbox (89,1,114,30) 200'd with 297 real fire points
+  for that same date. The API 404s whenever a bbox has zero matching fires, not only when
+  ingestion is incomplete. Callers that need to tell "not ingested" apart from "ingested, zero
+  fires in this area" must re-issue the same request against the full default bbox and check
+  whether that 404s too — get_fires/get_fires_range do this via isPeriodIngested in
+  src/shared/fires/handler.ts.
   → get_fires
 
 GET /api/fires/range?start=YYYY-MM-DD&end=YYYY-MM-DD&bbox=...
-  Fire points for a date range. Max 10 days (enforce client-side).
+  Fire points for a date range. Max 10 days (enforce client-side). Same bbox-dependent 404
+  ambiguity as /api/fires above — VERIFIED 2026-08-13, same method.
   → get_fires_range
 
 GET /api/station-readings/latest?parameter=pm25&bbox=...&date=YYYY-MM-DD
@@ -384,5 +395,5 @@ Raw PM2.5 µg/m³, not AQI index values. This is what `shared/aqi.ts` implements
 - **Attribution**: OpenAQ readings sometimes carry a per-station `attribution` field with requirements beyond the blanket CC BY 4.0 footer note — surface it per-station if present, don't drop it. Not observed on any of 303 live stations sampled 2026-07-26 (JOO-30); `get_station_readings` still passes it through opaquely as a defensive measure.
 - **CAMS is a model, station readings are measurements.** Don't let a tool response or description blur this distinction — an LLM conflating "the model says X" with "a station measured X" is a plausible and consequential mistake.
 - **`/api/cams/summary`'s range cap has been observed changing live** (120→140 days) during active backend development (JOO-35), and its true enforced boundary is one day below what its own error message states (139-day ranges succeed, 140-day ranges are rejected with `{"error":"range exceeds 140 days"}`). Always re-verify live before trusting a hardcoded value in this doc or in `get_cams_summary`'s `CAMS_SUMMARY_RANGE_MAX_DAYS` constant.
-- **Ingestion runs on a schedule.** A 404 on a date-scoped route very often means "not ingested yet," not "no data exists" — see `get_latest_date` as the tool to check first when a caller says "today" without a specific date in mind.
+- **Ingestion runs on a schedule.** A 404 on a date-scoped route very often means "not ingested yet," not "no data exists" — see `get_latest_date` as the tool to check first when a caller says "today" without a specific date in mind. This is incomplete for `/api/fires`/`/api/fires/range` specifically: their 404 can also mean "ingested, but zero fires matched this bbox" — see the fuller note on those routes above.
 - **`/api/station-readings/history`'s observed cadence is daily, not hourly**, despite the route's `hours` window param — verified 2026-07-26 (JOO-31) across 10+ stations, including full 168-hour windows, every series returned at most one point per calendar day (`00:00:00Z`). True intraday granularity may exist for some provider but wasn't observed anywhere. `get_station_readings_history` doesn't assume hourly cadence — it summarizes whatever points the API actually returns, and its description discloses this to the caller.

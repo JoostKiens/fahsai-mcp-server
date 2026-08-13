@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
 import { SMALL_FIRES } from '../../shared/fires/handler.fixtures.js';
+import { CONFIRMED_EMPTY_FIRE_AREA_NOTE } from '../../shared/fires/handler.js';
 import {
   fakePlaceResolver,
   fakeResolvedPlace,
@@ -93,7 +94,7 @@ describe('createGetFiresRangeHandler', () => {
     expect(get).not.toHaveBeenCalled();
   });
 
-  it('treats a 404 as "not ingested yet" rather than an error', async () => {
+  it('treats a 404 as "not ingested yet" when the full-coverage confirmation also 404s', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({
       ok: false,
@@ -110,6 +111,43 @@ describe('createGetFiresRangeHandler', () => {
     const structured = result.structuredContent as { total: number; note?: string };
     expect(structured.total).toBe(0);
     expect(structured.note).toBe('No fire data ingested for 2099-01-01–2099-01-05 yet.');
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports zero fires in the area, not "not ingested," when the 404 is confirmed via the full coverage bbox', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        error: { kind: 'not-found', status: 404, message: 'No data' },
+      })
+      .mockResolvedValueOnce({ ok: true, value: { data: [] } });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
+
+    const result = await handler({
+      place: 'Mae Sai, Thailand',
+      start: '2026-08-06',
+      end: '2026-08-12',
+    });
+
+    expect(result.isError).toBeUndefined();
+    const structured = result.structuredContent as { total: number; note?: string };
+    expect(structured.total).toBe(0);
+    expect(structured.note).toBe(CONFIRMED_EMPTY_FIRE_AREA_NOTE);
+    expect(get).toHaveBeenNthCalledWith(1, '/api/fires/range', {
+      start: '2026-08-06',
+      end: '2026-08-12',
+      bbox: '98.5,18.3,99.5,19.3',
+    });
+    expect(get).toHaveBeenNthCalledWith(2, '/api/fires/range', {
+      start: '2026-08-06',
+      end: '2026-08-12',
+      bbox: '89,1,114,30',
+    });
   });
 
   it('combines the location-resolution note with the not-ingested-yet note on a 404', async () => {

@@ -38,9 +38,14 @@ describe('/api/fires/range (live)', () => {
       bbox: SMALL_BBOX,
     });
 
-    // A 404 here means "zero fires in this small bbox over this range," not an error — fire
-    // activity is seasonal, and the existing get_fires_range handler already treats this as a
-    // normal empty result (see fetchAndSummarizeFires' not-found branch), not a failure.
+    // A 404 here is ambiguous by itself — it can mean "not ingested yet" OR "ingested, but zero
+    // fires in this small bbox" (VERIFIED 2026-08-13 via direct curl: the same fully-ingested
+    // date 404s against a small place-derived bbox and even a country-sized bbox, while 200ing
+    // against the full default coverage bbox). This live test only exercises the raw client, so
+    // either kind of 404 is a valid outcome here — it doesn't need to disambiguate. The
+    // tool-facing distinction (and the confirmation retry that makes it) lives in
+    // fetchAndSummarizeFires/isPeriodIngested (src/shared/fires/handler.ts), covered by its own
+    // unit tests, not this live smoke test.
     if (!result.ok) {
       expect(result.error.kind).toBe('not-found');
       return;

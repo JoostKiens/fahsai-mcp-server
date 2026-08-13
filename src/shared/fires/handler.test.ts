@@ -3,10 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FahsaiClient } from '../fahsai-client/client.js';
 import { EMPTY_FIRES, LARGE_FIRES, SMALL_FIRES } from './handler.fixtures.js';
 import {
+  CONFIRMED_EMPTY_FIRE_AREA_NOTE,
   emptyFireSummary,
   FIRE_LIST_TRUNCATION_THRESHOLD,
   fetchAndSummarizeFires,
   filterByConfidence,
+  isPeriodIngested,
   summarizeFires,
 } from './handler.js';
 
@@ -116,6 +118,37 @@ function fakeClient(get: FahsaiClient['get']): FahsaiClient {
   return { get };
 }
 
+describe('isPeriodIngested', () => {
+  it('returns true when the full-coverage-bbox confirmation call succeeds', async () => {
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
+
+    const confirmed = await isPeriodIngested(fakeClient(get), '/api/fires', {
+      date: '2026-08-12',
+      bbox: '99.39,19.94,100.38,20.94',
+    });
+
+    expect(confirmed).toBe(true);
+    expect(get).toHaveBeenCalledWith('/api/fires', {
+      date: '2026-08-12',
+      bbox: '89,1,114,30',
+    });
+  });
+
+  it('returns false when the confirmation call also 404s', async () => {
+    const get = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { kind: 'not-found', status: 404, message: 'No data' },
+    });
+
+    const confirmed = await isPeriodIngested(fakeClient(get), '/api/fires', {
+      date: '2099-01-01',
+      bbox: '99.39,19.94,100.38,20.94',
+    });
+
+    expect(confirmed).toBe(false);
+  });
+});
+
 describe('fetchAndSummarizeFires', () => {
   it('unwraps the {data: [...]} response envelope and summarizes it', async () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
@@ -148,7 +181,7 @@ describe('fetchAndSummarizeFires', () => {
     expect(structured.total).toBe(1);
   });
 
-  it('combines the location note with the not-ingested-yet note on a 404', async () => {
+  it('combines the location note with the not-ingested-yet note when the confirmation call also 404s', async () => {
     const get = vi.fn().mockResolvedValue({
       ok: false,
       error: { kind: 'not-found', status: 404, message: 'No data' },
@@ -168,6 +201,55 @@ describe('fetchAndSummarizeFires', () => {
     expect(structured.note).toBe(
       '`place` was ignored because `bbox` was provided directly. No fire data ingested for 2099-01-01 yet.',
     );
+    // params has no `bbox`, so it never matches the full-coverage bbox — a confirmation call is
+    // attempted (and also 404s here), not skipped.
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports the confirmed-empty-area note when a 404 against a small bbox is followed by a successful full-bbox confirmation', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        error: { kind: 'not-found', status: 404, message: 'No data' },
+      })
+      .mockResolvedValueOnce({ ok: true, value: { data: [] } });
+
+    const result = await fetchAndSummarizeFires(
+      fakeClient(get),
+      '/api/fires',
+      { date: '2026-08-12', bbox: '99.39,19.94,100.38,20.94' },
+      undefined,
+      'No fire data ingested for 2026-08-12 yet.',
+    );
+
+    const structured = result.structuredContent as { total: number; note?: string };
+    expect(structured.total).toBe(0);
+    expect(structured.note).toBe(CONFIRMED_EMPTY_FIRE_AREA_NOTE);
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenNthCalledWith(2, '/api/fires', {
+      date: '2026-08-12',
+      bbox: '89,1,114,30',
+    });
+  });
+
+  it('skips the confirmation call and keeps the original note when the request already used the full coverage bbox', async () => {
+    const get = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { kind: 'not-found', status: 404, message: 'No data' },
+    });
+
+    const result = await fetchAndSummarizeFires(
+      fakeClient(get),
+      '/api/fires',
+      { date: '2099-01-01', bbox: '89,1,114,30' },
+      undefined,
+      'No fire data ingested for 2099-01-01 yet.',
+    );
+
+    const structured = result.structuredContent as { total: number; note?: string };
+    expect(structured.note).toBe('No fire data ingested for 2099-01-01 yet.');
+    expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('returns isError for a non-404 Fahsai error', async () => {
@@ -185,5 +267,7 @@ describe('fetchAndSummarizeFires', () => {
     );
 
     expect(result.isError).toBe(true);
+    // Non-404 errors never trigger a confirmation call.
+    expect(get).toHaveBeenCalledTimes(1);
   });
 });
