@@ -74,6 +74,20 @@ describe('findNearestStation', () => {
     });
   });
 
+  it('treats a malformed (non-array) data field as no candidates instead of throwing', async () => {
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: null } });
+    const client = fakeClient(get);
+
+    const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('Expected failure result');
+    expect(result.error).toEqual({
+      kind: 'no-nearby-station',
+      message: 'No stations found within the search area.',
+    });
+  });
+
   it('skips a closer station with no reading for the requested date, in favor of the next-closest one that has one', async () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: STATIONS_MIXED_DATES } });
     const client = fakeClient(get);

@@ -1,4 +1,5 @@
 import { classifyAqiOrNull } from '../../shared/aqi.js';
+import { asArray } from '../../shared/as-array.js';
 import { formatBboxParam } from '../../shared/bbox.js';
 import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import { resolveDateOrLatest } from '../../shared/latest-date.js';
@@ -86,10 +87,13 @@ export function createGetStationReadingsHandler(deps: StationReadingsToolDeps) {
       return buildToolError(fetchResult.error.message);
     }
 
-    if (fetchResult.value.data.length === 0) {
+    // Guard against a malformed success body (missing/renamed `data`) instead of letting
+    // downstream indexing throw — fahsai-client casts JSON to T with no runtime check.
+    const data = asArray<StationReadingLatestRaw>(fetchResult.value?.data);
+    if (data.length === 0) {
       return buildToolResponse(emptyStationReadingsSummary(), locationNote, noDataNote(date));
     }
 
-    return buildToolResponse(summarizeStationReadings(fetchResult.value.data), locationNote);
+    return buildToolResponse(summarizeStationReadings(data), locationNote);
   };
 }

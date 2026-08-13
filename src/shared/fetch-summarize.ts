@@ -3,7 +3,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { FahsaiClient, FahsaiQueryParams } from './fahsai-client/client.js';
 import { buildToolError, buildToolResponse } from './tool-response.js';
 
-export interface FetchAndSummarizeOptions<TRaw, TSummary extends { readonly note?: string }> {
+interface FetchAndSummarizeOptions<TRaw, TSummary extends { readonly note?: string }> {
   // Pulls the raw shape this tool cares about out of the (unvalidated) parsed JSON body —
   // fahsai-client casts straight to T with no runtime check, so this is also where a tool
   // guards against a malformed/renamed/missing field, degrading to an empty value instead of

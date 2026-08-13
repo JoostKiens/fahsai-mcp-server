@@ -1,6 +1,5 @@
 export interface SummarizedValidReadings<TSummary> {
   readonly items: readonly TSummary[];
-  readonly omitted: number;
   readonly note?: string;
 }
 
@@ -27,7 +26,6 @@ export function summarizeValidReadings<TRaw, TSummary>(
 
   return {
     items,
-    omitted,
     note: omitted > 0 ? `${omitted} ${noun}(s) omitted for an invalid PM2.5 value.` : undefined,
   };
 }

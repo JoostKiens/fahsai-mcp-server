@@ -175,6 +175,22 @@ describe('createGetStationReadingsHandler', () => {
     expect(structured.note).toBe('No station readings available for 2026-07-25.');
   });
 
+  it('treats a malformed (non-array) data field as no data instead of throwing', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: null } });
+    const handler = createGetStationReadingsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
+
+    const result = await handler({ place: 'Chiang Mai', date: '2026-07-25' });
+
+    expect(result.isError).toBeUndefined();
+    const structured = result.structuredContent as { total: number; note?: string };
+    expect(structured.total).toBe(0);
+    expect(structured.note).toBe('No station readings available for 2026-07-25.');
+  });
+
   it('returns isError for a non-404 Fahsai error', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({
