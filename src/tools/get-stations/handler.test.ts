@@ -30,6 +30,17 @@ describe('createGetStationsHandler', () => {
     expect(get).toHaveBeenCalledWith('/api/stations', { bbox: '98.5,18.3,99.5,19.3', q: 'Bankhaohin' });
   });
 
+  it('searches by `name` alone, falling back to the full coverage bbox', async () => {
+    const resolve = vi.fn();
+    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_STATIONS } });
+    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    await handler({ name: 'Bankhaohin' });
+
+    expect(get).toHaveBeenCalledWith('/api/stations', { bbox: '89,1,114,30', q: 'Bankhaohin' });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
   it('returns an empty list for a bbox with no stations', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: EMPTY_STATIONS } });
