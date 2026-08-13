@@ -30,7 +30,9 @@ export interface StationReadingsHistoryApiResponse {
   readonly data: readonly StationReadingHistoryRaw[];
 }
 
-function toStationReadingHistoryPoint(raw: StationReadingHistoryRaw): StationReadingHistoryPoint | null {
+function toStationReadingHistoryPoint(
+  raw: StationReadingHistoryRaw,
+): StationReadingHistoryPoint | null {
   const result = classifyAqiOrNull(raw.value);
   if (result === null) return null;
 

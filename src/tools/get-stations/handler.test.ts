@@ -1,15 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
-import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
-import { createGetStationsHandler } from './handler.js';
+import {
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import { EMPTY_STATIONS, SMALL_STATIONS } from './handler.fixtures.js';
+import { createGetStationsHandler } from './handler.js';
 
 describe('createGetStationsHandler', () => {
   it('resolves the place, fetches, and returns the full station list unsummarized', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_STATIONS } });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai' });
 
@@ -23,17 +29,26 @@ describe('createGetStationsHandler', () => {
   it('passes `name` through to the client call as `q`', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_STATIONS } });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     await handler({ place: 'Chiang Mai', name: 'Bankhaohin' });
 
-    expect(get).toHaveBeenCalledWith('/api/stations', { bbox: '98.5,18.3,99.5,19.3', q: 'Bankhaohin' });
+    expect(get).toHaveBeenCalledWith('/api/stations', {
+      bbox: '98.5,18.3,99.5,19.3',
+      q: 'Bankhaohin',
+    });
   });
 
   it('searches by `name` alone, falling back to the full coverage bbox', async () => {
     const resolve = vi.fn();
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_STATIONS } });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     await handler({ name: 'Bankhaohin' });
 
@@ -44,7 +59,10 @@ describe('createGetStationsHandler', () => {
   it('returns an empty list for a bbox with no stations', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: EMPTY_STATIONS } });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai' });
 
@@ -56,7 +74,10 @@ describe('createGetStationsHandler', () => {
   it('treats a malformed (non-object) success body as an empty list rather than throwing', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: null });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai' });
 
@@ -67,9 +88,14 @@ describe('createGetStationsHandler', () => {
   });
 
   it('returns isError when location resolution fails', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
     const get = vi.fn();
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Nowhereville' });
 
@@ -83,7 +109,10 @@ describe('createGetStationsHandler', () => {
       ok: false,
       error: { kind: 'server-error', status: 500, message: 'Fahsai API server error' },
     });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai' });
 
@@ -93,7 +122,10 @@ describe('createGetStationsHandler', () => {
   it('surfaces the location-resolution note (e.g. bbox overriding place) in the response', async () => {
     const resolve = vi.fn();
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: EMPTY_STATIONS } });
-    const handler = createGetStationsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetStationsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
     const bbox = { west: 100, south: 13, east: 101, north: 14 };
 
     const result = await handler({ place: 'Chiang Mai', bbox });

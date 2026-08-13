@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
-import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
-import { createGetStationReadingsHandler, summarizeStationReadings } from './handler.js';
+import {
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import {
   EMPTY_STATION_READINGS,
   SMALL_STATION_READINGS,
   STATION_READINGS_WITH_INVALID_VALUE,
 } from './handler.fixtures.js';
+import { createGetStationReadingsHandler, summarizeStationReadings } from './handler.js';
 
 describe('summarizeStationReadings', () => {
   it('returns total 0 and an empty readings array for no stations', () => {

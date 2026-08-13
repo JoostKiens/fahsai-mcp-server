@@ -4,7 +4,11 @@ import { findNearestStation } from '../../shared/nearest-station/handler.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { buildIgnoredFieldsNote, resolveLocationInput } from '../../shared/resolve-location.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
-import type { GetReadingExplanationInput, ReadingExplanationToolResult, ScientificContext } from './schema.js';
+import type {
+  GetReadingExplanationInput,
+  ReadingExplanationToolResult,
+  ScientificContext,
+} from './schema.js';
 
 export interface ReadingExplanationToolDeps {
   readonly client: FahsaiClient;
@@ -56,11 +60,17 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
       }
       date = dateResult.value;
 
-      stationResult = await findNearestStation(deps.client, { bbox: locationResult.value.bbox, date });
+      stationResult = await findNearestStation(deps.client, {
+        bbox: locationResult.value.bbox,
+        date,
+      });
     }
 
     if (!stationResult.ok) {
-      if (stationResult.error.kind === 'no-nearby-station' || stationResult.error.kind === 'station-not-found') {
+      if (
+        stationResult.error.kind === 'no-nearby-station' ||
+        stationResult.error.kind === 'station-not-found'
+      ) {
         const summary: ReadingExplanationSummary = {};
         return buildToolResponse(summary, locationNote, stationResult.error.message);
       }

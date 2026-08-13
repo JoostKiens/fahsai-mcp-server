@@ -1,4 +1,4 @@
-import { clampToDataBbox, FAHSAI_DATA_BBOX, type BoundingBox } from './bbox.js';
+import { type BoundingBox, clampToDataBbox, FAHSAI_DATA_BBOX } from './bbox.js';
 import type { PlaceResolver, PlaceResolverError } from './place-resolver/index.js';
 import type { Result } from './result.js';
 import type { LocationInput } from './schema/location.js';
@@ -21,7 +21,10 @@ export function placeOutsideCoverageMessage(place: string): string {
 // Builds a "these inputs were ignored because X won" note — never silently drop an input with
 // no signal back to the caller. Shared with tools that add their own precedence rule on top of
 // place/bbox (e.g. get_reading_explanation's station_id, JOO-53).
-export function buildIgnoredFieldsNote(ignoredFields: readonly string[], because: string): string | undefined {
+export function buildIgnoredFieldsNote(
+  ignoredFields: readonly string[],
+  because: string,
+): string | undefined {
   if (ignoredFields.length === 0) return undefined;
   const verb = ignoredFields.length > 1 ? 'were' : 'was';
   return `${ignoredFields.join(' and ')} ${verb} ignored because \`${because}\` was provided directly.`;
@@ -39,7 +42,10 @@ export async function resolveLocationInput(
     if (overlap === null) {
       return {
         ok: false,
-        error: { kind: 'outside-coverage', message: "The given bbox does not overlap Fahsai's coverage area." },
+        error: {
+          kind: 'outside-coverage',
+          message: "The given bbox does not overlap Fahsai's coverage area.",
+        },
       };
     }
 

@@ -2,12 +2,12 @@ import { asArray } from '../as-array.js';
 import type { FahsaiClient, FahsaiQueryParams } from '../fahsai-client/client.js';
 import { fetchAndSummarize } from '../fetch-summarize.js';
 import type { PlaceResolver } from '../place-resolver/index.js';
-import {
-  type FireConfidence,
-  type FireConfidenceBreakdown,
-  type FireSummary,
-  type FireToolResult,
-  type SummarizedFirePoint,
+import type {
+  FireConfidence,
+  FireConfidenceBreakdown,
+  FireSummary,
+  FireToolResult,
+  SummarizedFirePoint,
 } from './schema.js';
 
 // Above this count, summarizeFires returns the top-N by FRP instead of the full list.

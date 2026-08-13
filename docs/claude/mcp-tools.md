@@ -28,7 +28,7 @@ export function createGetFiresHandler(deps: FiresToolDeps) {
 export function registerGetFires(server: McpServer, deps: FiresToolDeps): void { /* ... */ }
 ```
 
-If a tool's schema or handler logic is genuinely shared with a sibling tool (e.g. `get_fires` and `get_fires_range` both need `fireSummaryOutputSchema` and `fetchAndSummarizeFires`), that logic moves to `shared/<name>/schema.ts` + `shared/<name>/handler.ts` instead — see `architecture.md`'s directory structure and import-boundary rules. `tools/<a>/*` must never import from `tools/<b>/*` (ESLint enforces this); promote to `shared/` instead.
+If a tool's schema or handler logic is genuinely shared with a sibling tool (e.g. `get_fires` and `get_fires_range` both need `fireSummaryOutputSchema` and `fetchAndSummarizeFires`), that logic moves to `shared/<name>/schema.ts` + `shared/<name>/handler.ts` instead — see `architecture.md`'s directory structure and import-boundary rules. `tools/<a>/*` must never import from `tools/<b>/*` (convention, not automated — see `architecture.md`); promote to `shared/` instead.
 
 The handler should read as a straight-line sequence: validate → resolve location → fetch → classify/summarize → return. If it doesn't read that way, the logic making it complicated probably belongs in a separate pure function.
 
@@ -61,4 +61,4 @@ If both `place` and `bbox` are given to a tool, `bbox` wins and the response inc
 - **`shared/aqi.ts`, `shared/wind.ts`, `shared/bbox.ts`, `shared/tool-response.ts`, `shared/result.ts`**: small, single-file, pure cross-cutting utilities, each reused by multiple tools or shared modules.
 - **`shared/schema/`**: only truly cross-tool Zod primitives (`locationInput`, `isoDateSchema`) — never a per-tool schema.
 
-If logic would be useful to two or more tools, it doesn't live in either tool's folder — it moves to `shared/` (a flat file for a small utility, or its own `shared/<name>/schema.ts` + `handler.ts` folder for a meatier shared domain module, mirroring a tool folder's shape — see `shared/fires/` for the pattern), imported by both. ESLint's `import-x/no-restricted-paths` enforces this — a `tools/<a>/*` import from `tools/<b>/*` fails lint, so this isn't just a convention to remember.
+If logic would be useful to two or more tools, it doesn't live in either tool's folder — it moves to `shared/` (a flat file for a small utility, or its own `shared/<name>/schema.ts` + `handler.ts` folder for a meatier shared domain module, mirroring a tool folder's shape — see `shared/fires/` for the pattern), imported by both. A `tools/<a>/*` import from `tools/<b>/*` is not caught by lint — Biome's `noRestrictedImports` can't distinguish it from a same-folder import (see `architecture.md`) — so this one is genuinely a convention to remember, not a rule CI enforces.

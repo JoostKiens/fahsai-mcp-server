@@ -19,7 +19,9 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w -p tsconfig.json",
     "start": "node dist/index.js",
-    "lint": "eslint . --ext .ts",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
     "test": "vitest",
     "test:live": "LIVE=true vitest run",
     "test:coverage": "vitest run --coverage"
@@ -29,14 +31,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
     "@types/node": "^26.1.1",
-    "@typescript-eslint/eslint-plugin": "^8.65.0",
-    "@typescript-eslint/parser": "^8.65.0",
     "@vitest/coverage-v8": "^4.1.10",
-    "eslint": "^10.8.0",
-    "eslint-import-resolver-typescript": "^4.4.5",
-    "eslint-plugin-import-x": "^4.17.1",
-    "prettier": "^3.9.6",
     "typescript": "^6.0.0",
     "vitest": "^4.1.10"
   }

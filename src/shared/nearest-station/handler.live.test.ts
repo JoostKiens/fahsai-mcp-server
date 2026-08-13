@@ -14,7 +14,8 @@ describe('findNearestStation (live)', () => {
     const result = await findNearestStation(client, { bbox: CENTRAL_THAILAND_BBOX });
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(`Expected a successful result, got: ${JSON.stringify(result.error)}`);
+    if (!result.ok)
+      throw new Error(`Expected a successful result, got: ${JSON.stringify(result.error)}`);
     expect(typeof result.value.stationId).toBe('string');
     expect(typeof result.value.lat).toBe('number');
     expect(typeof result.value.lng).toBe('number');
@@ -26,7 +27,8 @@ describe('findNearestStation (live)', () => {
     const result = await findNearestStation(client, { stationId: '10004' });
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(`Expected a successful result, got: ${JSON.stringify(result.error)}`);
+    if (!result.ok)
+      throw new Error(`Expected a successful result, got: ${JSON.stringify(result.error)}`);
     expect(result.value.stationId).toBe('10004');
     expect(typeof result.value.lat).toBe('number');
     expect(typeof result.value.lng).toBe('number');

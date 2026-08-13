@@ -6,17 +6,17 @@ import {
   fakeResolvedPlace,
 } from '../../shared/place-resolver/place-resolver.fixtures.js';
 import {
-  computeAreaSummary,
-  createGetCamsHandler,
-  emptyCamsSummary,
-  summarizeCams,
-} from './handler.js';
-import {
   EMPTY_CAMS_GRID,
   FULL_CAMS_GRID,
   GRID_WITH_INVALID_READING,
   SMALL_AREA_CAMS_GRID,
 } from './handler.fixtures.js';
+import {
+  computeAreaSummary,
+  createGetCamsHandler,
+  emptyCamsSummary,
+  summarizeCams,
+} from './handler.js';
 import { CAMS_GRID_MAX } from './schema.js';
 
 describe('computeAreaSummary', () => {

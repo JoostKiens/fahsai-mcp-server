@@ -1,5 +1,5 @@
 import { asArray } from '../as-array.js';
-import { formatBboxParam, type BoundingBox } from '../bbox.js';
+import { type BoundingBox, formatBboxParam } from '../bbox.js';
 import type { FahsaiClient, FahsaiError } from '../fahsai-client/client.js';
 import { resolveDateOrLatest } from '../latest-date.js';
 import type { Result } from '../result.js';
@@ -19,7 +19,9 @@ export interface NearestStation {
   readonly lng: number;
 }
 
-export type NearestStationInput = { readonly bbox: BoundingBox; readonly date?: string } | { readonly stationId: string };
+export type NearestStationInput =
+  | { readonly bbox: BoundingBox; readonly date?: string }
+  | { readonly stationId: string };
 
 export type NearestStationError =
   | FahsaiError
@@ -81,7 +83,9 @@ async function resolveByStationId(
   client: FahsaiClient,
   stationId: string,
 ): Promise<Result<NearestStation, NearestStationError>> {
-  const fetchResult = await client.get<StationRaw>(`/api/stations/${encodeURIComponent(stationId)}`);
+  const fetchResult = await client.get<StationRaw>(
+    `/api/stations/${encodeURIComponent(stationId)}`,
+  );
   if (!fetchResult.ok) {
     if (fetchResult.error.kind === 'not-found') {
       return stationNotFound(`No station found with id "${stationId}".`);
@@ -91,7 +95,11 @@ async function resolveByStationId(
 
   return {
     ok: true,
-    value: { stationId: fetchResult.value.id, lat: fetchResult.value.lat, lng: fetchResult.value.lng },
+    value: {
+      stationId: fetchResult.value.id,
+      lat: fetchResult.value.lat,
+      lng: fetchResult.value.lng,
+    },
   };
 }
 
@@ -132,7 +140,8 @@ async function resolveByBbox(
   }
 
   const center = bboxCenter(bbox);
-  let nearest: { readonly station: StationReadingLatestRaw; readonly distanceKm: number } | null = null;
+  let nearest: { readonly station: StationReadingLatestRaw; readonly distanceKm: number } | null =
+    null;
   for (const station of candidates) {
     const distanceKm = haversineKm(center.lat, center.lng, station.lat, station.lng);
     if (nearest === null || distanceKm < nearest.distanceKm) {
@@ -141,11 +150,17 @@ async function resolveByBbox(
   }
 
   if (nearest === null || nearest.distanceKm > NEAREST_STATION_CUTOFF_KM) {
-    return noNearbyStation(`Nearest station is more than ${NEAREST_STATION_CUTOFF_KM}km from the requested location.`);
+    return noNearbyStation(
+      `Nearest station is more than ${NEAREST_STATION_CUTOFF_KM}km from the requested location.`,
+    );
   }
 
   return {
     ok: true,
-    value: { stationId: nearest.station.stationId, lat: nearest.station.lat, lng: nearest.station.lng },
+    value: {
+      stationId: nearest.station.stationId,
+      lat: nearest.station.lat,
+      lng: nearest.station.lng,
+    },
   };
 }

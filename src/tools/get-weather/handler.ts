@@ -172,7 +172,8 @@ async function fetchAndSummarizeWeather(
   locationNote?: string,
 ): Promise<WeatherToolResult> {
   return fetchAndSummarize(client, path, params, {
-    extractData: (body) => asArray<WeatherGridPointRaw>((body as WeatherApiResponse | undefined)?.data),
+    extractData: (body) =>
+      asArray<WeatherGridPointRaw>((body as WeatherApiResponse | undefined)?.data),
     summarize: (points) => summarizeWeather(points, includeRawPoints),
     emptySummary: emptyWeatherSummary(),
     notFoundNote,

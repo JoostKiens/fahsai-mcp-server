@@ -86,7 +86,10 @@ export function createNominatimClient(): NominatimClient {
     if (!Array.isArray(body)) {
       return {
         ok: false,
-        error: { kind: 'nominatim-error', message: 'Nominatim returned a non-array response body.' },
+        error: {
+          kind: 'nominatim-error',
+          message: 'Nominatim returned a non-array response body.',
+        },
       };
     }
 

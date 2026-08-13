@@ -5,11 +5,11 @@ import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import {
+  type FuelType,
+  type GetPowerPlantsInput,
   POWER_PLANTS_FULL_LIST_THRESHOLD,
   POWER_PLANTS_MAX_PLANTS,
   POWER_PLANTS_TOP_N,
-  type FuelType,
-  type GetPowerPlantsInput,
   type PowerPlant,
   type PowerPlantsSummary,
   type PowerPlantsToolResult,
@@ -56,7 +56,10 @@ export function toPowerPlant(feature: PowerPlantFeatureRaw): PowerPlant {
   };
 }
 
-function countBy<K extends string>(plants: readonly PowerPlant[], key: (plant: PowerPlant) => K): Record<K, number> {
+function countBy<K extends string>(
+  plants: readonly PowerPlant[],
+  key: (plant: PowerPlant) => K,
+): Record<K, number> {
   const counts = {} as Record<K, number>;
   for (const plant of plants) {
     const value = key(plant);
@@ -65,8 +68,13 @@ function countBy<K extends string>(plants: readonly PowerPlant[], key: (plant: P
   return counts;
 }
 
-export function summarizePowerPlants(plants: readonly PowerPlant[], includeAll: boolean): PowerPlantsSummary {
-  const topByCapacity = [...plants].sort((a, b) => b.capacityMw - a.capacityMw).slice(0, POWER_PLANTS_TOP_N);
+export function summarizePowerPlants(
+  plants: readonly PowerPlant[],
+  includeAll: boolean,
+): PowerPlantsSummary {
+  const topByCapacity = [...plants]
+    .sort((a, b) => b.capacityMw - a.capacityMw)
+    .slice(0, POWER_PLANTS_TOP_N);
 
   const summary: PowerPlantsSummary = {
     total: plants.length,
@@ -113,8 +121,13 @@ export function createGetPowerPlantsHandler(deps: PowerPlantsToolDeps) {
     }
 
     const features = asArray<PowerPlantFeatureRaw>(fetchResult.value?.features);
-    const plants = features.map(toPowerPlant).filter((plant) => pointInBbox(plant.lat, plant.lng, bbox));
+    const plants = features
+      .map(toPowerPlant)
+      .filter((plant) => pointInBbox(plant.lat, plant.lng, bbox));
 
-    return buildToolResponse(summarizePowerPlants(plants, input.include_all ?? false), locationNote);
+    return buildToolResponse(
+      summarizePowerPlants(plants, input.include_all ?? false),
+      locationNote,
+    );
   };
 }

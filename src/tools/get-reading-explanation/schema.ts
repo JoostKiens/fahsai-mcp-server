@@ -261,7 +261,9 @@ export const readingExplanationOutputSchema = z.object({
     .optional(),
   wind: z
     .object({
-      days: z.array(z.object({ date: z.string(), directionLabel: z.string(), speedKmh: z.number() })),
+      days: z.array(
+        z.object({ date: z.string(), directionLabel: z.string(), speedKmh: z.number() }),
+      ),
     })
     .optional(),
   weatherContext: z
@@ -291,7 +293,12 @@ export const readingExplanationOutputSchema = z.object({
     .object({
       trajectory: z.object({
         hoursTraced: z.number(),
-        origin: z.object({ lat: z.number(), lng: z.number(), region: z.string(), date: z.string() }),
+        origin: z.object({
+          lat: z.number(),
+          lng: z.number(),
+          region: z.string(),
+          date: z.string(),
+        }),
         corridorWidthKm: z.number(),
         meanWindSpeedKmh: z.number(),
         waypoints: z.array(z.object({ lat: z.number(), lng: z.number(), region: z.string() })),
@@ -359,7 +366,11 @@ export const readingExplanationOutputSchema = z.object({
     .optional(),
   outlier: z
     .union([
-      z.object({ type: z.literal('HIGH'), ratio: z.number(), peerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]) }),
+      z.object({
+        type: z.literal('HIGH'),
+        ratio: z.number(),
+        peerTier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      }),
       z.object({ type: z.literal('LOW'), ratio: z.number() }),
     ])
     .nullable()

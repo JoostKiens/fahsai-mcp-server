@@ -1,9 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { createGetStationReadingsHistoryHandler, type StationReadingsHistoryToolDeps } from './handler.js';
 import {
-  STATION_READINGS_HISTORY_MAX_HOURS,
+  createGetStationReadingsHistoryHandler,
+  type StationReadingsHistoryToolDeps,
+} from './handler.js';
+import {
   getStationReadingsHistoryInputSchema,
+  STATION_READINGS_HISTORY_MAX_HOURS,
   stationReadingsHistoryOutputSchema,
 } from './schema.js';
 

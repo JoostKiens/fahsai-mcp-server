@@ -1,14 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
-import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
-import { createGetPowerPlantsHandler, summarizePowerPlants, toPowerPlant } from './handler.js';
+import {
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import {
   CHIANG_MAI_AREA_POWER_PLANT_FEATURES,
   EMPTY_POWER_PLANT_FEATURES,
   fakePowerPlantFeature,
   SEA_AND_OUTSIDE_POWER_PLANT_FEATURES,
 } from './handler.fixtures.js';
+import { createGetPowerPlantsHandler, summarizePowerPlants, toPowerPlant } from './handler.js';
 import { POWER_PLANTS_FULL_LIST_THRESHOLD, POWER_PLANTS_MAX_PLANTS } from './schema.js';
 
 describe('summarizePowerPlants', () => {
@@ -76,13 +79,19 @@ describe('createGetPowerPlantsHandler', () => {
       ok: true,
       value: { type: 'FeatureCollection', features: SEA_AND_OUTSIDE_POWER_PLANT_FEATURES },
     });
-    const handler = createGetPowerPlantsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetPowerPlantsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({});
 
     expect(get).toHaveBeenCalledWith('/api/power-plants');
     expect(resolve).not.toHaveBeenCalled();
-    const structured = result.structuredContent as { total: number; byCountry: Record<string, number> };
+    const structured = result.structuredContent as {
+      total: number;
+      byCountry: Record<string, number>;
+    };
     expect(structured.total).toBe(2); // the two THA plants; the CHN one is outside FAHSAI_DATA_BBOX
     expect(structured.byCountry).toEqual({ THA: 2 });
   });
@@ -93,7 +102,10 @@ describe('createGetPowerPlantsHandler', () => {
       ok: true,
       value: { type: 'FeatureCollection', features: CHIANG_MAI_AREA_POWER_PLANT_FEATURES },
     });
-    const handler = createGetPowerPlantsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetPowerPlantsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai' });
 
@@ -104,7 +116,10 @@ describe('createGetPowerPlantsHandler', () => {
   it('treats a malformed (non-object) success body as an empty result rather than throwing', async () => {
     const resolve = vi.fn();
     const get = vi.fn().mockResolvedValue({ ok: true, value: null });
-    const handler = createGetPowerPlantsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetPowerPlantsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({});
 
@@ -114,9 +129,14 @@ describe('createGetPowerPlantsHandler', () => {
   });
 
   it('returns isError when location resolution fails', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
     const get = vi.fn();
-    const handler = createGetPowerPlantsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetPowerPlantsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Nowhereville' });
 
@@ -130,7 +150,10 @@ describe('createGetPowerPlantsHandler', () => {
       ok: false,
       error: { kind: 'server-error', status: 500, message: 'Fahsai API server error' },
     });
-    const handler = createGetPowerPlantsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetPowerPlantsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({});
 
@@ -143,7 +166,10 @@ describe('createGetPowerPlantsHandler', () => {
       ok: true,
       value: { type: 'FeatureCollection', features: EMPTY_POWER_PLANT_FEATURES },
     });
-    const handler = createGetPowerPlantsHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetPowerPlantsHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({});
 

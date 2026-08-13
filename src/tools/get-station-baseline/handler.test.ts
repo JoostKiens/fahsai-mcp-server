@@ -2,17 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
 import {
+  EMPTY_STATION_BASELINE,
+  NORMAL_STATION_BASELINE,
+  NORMAL_STATION_BASELINE_FULL,
+} from './handler.fixtures.js';
+import {
   createGetStationBaselineHandler,
   getSeason,
   summarizeStationBaselineDay,
   summarizeStationBaselineDefault,
   summarizeStationBaselineFull,
 } from './handler.js';
-import {
-  EMPTY_STATION_BASELINE,
-  NORMAL_STATION_BASELINE,
-  NORMAL_STATION_BASELINE_FULL,
-} from './handler.fixtures.js';
 import { getStationBaselineInputSchema } from './schema.js';
 
 describe('getSeason', () => {
@@ -39,15 +39,27 @@ describe('summarizeStationBaselineDefault', () => {
   const today = new Date('2026-07-26T00:00:00Z');
 
   it('returns a no-data note for an empty baseline (bad station_id)', () => {
-    const summary = summarizeStationBaselineDefault(EMPTY_STATION_BASELINE, null, null, '999999999', today);
+    const summary = summarizeStationBaselineDefault(
+      EMPTY_STATION_BASELINE,
+      null,
+      null,
+      '999999999',
+      today,
+    );
 
     expect(summary.season).toBeUndefined();
     expect(summary.today).toBeUndefined();
     expect(summary.note).toContain('No baseline data for station 999999999');
   });
 
-  it('aggregates the current season and reports today\'s row', () => {
-    const summary = summarizeStationBaselineDefault(NORMAL_STATION_BASELINE, 2021, 2026, '225572', today);
+  it("aggregates the current season and reports today's row", () => {
+    const summary = summarizeStationBaselineDefault(
+      NORMAL_STATION_BASELINE,
+      2021,
+      2026,
+      '225572',
+      today,
+    );
 
     expect(summary.season).toEqual({
       season: 'monsoon',
@@ -91,7 +103,7 @@ describe('summarizeStationBaselineDefault', () => {
     });
   });
 
-  it('notes when there is no row for today\'s day-of-year', () => {
+  it("notes when there is no row for today's day-of-year", () => {
     const summary = summarizeStationBaselineDefault(
       NORMAL_STATION_BASELINE,
       2021,
@@ -107,7 +119,14 @@ describe('summarizeStationBaselineDefault', () => {
 
 describe('summarizeStationBaselineDay', () => {
   it('returns the matching row, flagged thin when n is below the gate', () => {
-    const summary = summarizeStationBaselineDay(NORMAL_STATION_BASELINE, 2021, 2026, '225572', 7, 27);
+    const summary = summarizeStationBaselineDay(
+      NORMAL_STATION_BASELINE,
+      2021,
+      2026,
+      '225572',
+      7,
+      27,
+    );
 
     expect(summary.day).toEqual({
       month: 7,
@@ -124,24 +143,43 @@ describe('summarizeStationBaselineDay', () => {
   });
 
   it('notes when the requested month/day has no row', () => {
-    const summary = summarizeStationBaselineDay(NORMAL_STATION_BASELINE, 2021, 2026, '225572', 2, 29);
+    const summary = summarizeStationBaselineDay(
+      NORMAL_STATION_BASELINE,
+      2021,
+      2026,
+      '225572',
+      2,
+      29,
+    );
 
     expect(summary.day).toBeUndefined();
     expect(summary.note).toBe('No baseline row for 02-29.');
   });
 
   it('returns a no-data note for an empty baseline', () => {
-    const summary = summarizeStationBaselineDay(EMPTY_STATION_BASELINE, null, null, '999999999', 1, 1);
+    const summary = summarizeStationBaselineDay(
+      EMPTY_STATION_BASELINE,
+      null,
+      null,
+      '999999999',
+      1,
+      1,
+    );
     expect(summary.note).toContain('No baseline data for station 999999999');
   });
 });
 
 describe('summarizeStationBaselineFull', () => {
   it('returns every row unmodified plus a thin flag, with no truncation', () => {
-    const summary = summarizeStationBaselineFull(NORMAL_STATION_BASELINE_FULL, 2021, 2026, '225572');
+    const summary = summarizeStationBaselineFull(
+      NORMAL_STATION_BASELINE_FULL,
+      2021,
+      2026,
+      '225572',
+    );
 
     expect(summary.rows).toHaveLength(365);
-    expect(summary.rows?.every((row) => row.thin === (row.n < 30))).toBe(true);
+    expect(summary.rows?.every((row) => row.thin === row.n < 30)).toBe(true);
   });
 
   it('returns an empty rows array plus a no-data note for a bad station_id', () => {
@@ -152,7 +190,12 @@ describe('summarizeStationBaselineFull', () => {
   });
 
   it('never returns a bare PM2.5 number without an aqiCategory', () => {
-    const summary = summarizeStationBaselineFull(NORMAL_STATION_BASELINE_FULL, 2021, 2026, '225572');
+    const summary = summarizeStationBaselineFull(
+      NORMAL_STATION_BASELINE_FULL,
+      2021,
+      2026,
+      '225572',
+    );
 
     for (const row of summary.rows ?? []) {
       expect(row.medianAqiCategory).not.toBeNull();
@@ -171,12 +214,12 @@ describe('getStationBaselineInputSchema', () => {
   });
 
   it('rejects an out-of-range month/day', () => {
-    expect(getStationBaselineInputSchema.safeParse({ station_id: '225572', month: 13, day: 1 }).success).toBe(
-      false,
-    );
-    expect(getStationBaselineInputSchema.safeParse({ station_id: '225572', month: 1, day: 32 }).success).toBe(
-      false,
-    );
+    expect(
+      getStationBaselineInputSchema.safeParse({ station_id: '225572', month: 13, day: 1 }).success,
+    ).toBe(false);
+    expect(
+      getStationBaselineInputSchema.safeParse({ station_id: '225572', month: 1, day: 32 }).success,
+    ).toBe(false);
   });
 });
 
@@ -220,7 +263,9 @@ describe('createGetStationBaselineHandler', () => {
 
     const result = await handler({ station_id: '225572', full: false, month: 7, day: 27 });
 
-    const structured = result.structuredContent as { day?: { month: number; day: number; thin: boolean } };
+    const structured = result.structuredContent as {
+      day?: { month: number; day: number; thin: boolean };
+    };
     expect(structured.day).toEqual({
       month: 7,
       day: 27,
@@ -250,7 +295,9 @@ describe('createGetStationBaselineHandler', () => {
   });
 
   it('treats a malformed success body (data not an array) as empty instead of throwing', async () => {
-    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: null, minYear: null, maxYear: null } });
+    const get = vi
+      .fn()
+      .mockResolvedValue({ ok: true, value: { data: null, minYear: null, maxYear: null } });
     const handler = createGetStationBaselineHandler({ client: fakeClient(get) });
 
     const result = await handler({ station_id: '225572', full: false });

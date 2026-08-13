@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { BoundingBox } from '../bbox.js';
 import { fakeClient } from '../fahsai-client/client.fixtures.js';
-import { findNearestStation } from './handler.js';
 import {
   EMPTY_STATION_READINGS,
   STATIONS_ALL_BEYOND_CUTOFF,
   STATIONS_BY_DISTANCE,
   STATIONS_MIXED_DATES,
 } from './handler.fixtures.js';
+import { findNearestStation } from './handler.js';
 
 const CHIANG_MAI_BBOX: BoundingBox = { west: 98.5, south: 18.3, east: 99.5, north: 19.3 };
 const DATE = '2026-07-25';
@@ -30,7 +30,9 @@ describe('findNearestStation', () => {
   });
 
   it('returns no-nearby-station when the nearest candidate exceeds the 50km cutoff', async () => {
-    const get = vi.fn().mockResolvedValue({ ok: true, value: { data: STATIONS_ALL_BEYOND_CUTOFF } });
+    const get = vi
+      .fn()
+      .mockResolvedValue({ ok: true, value: { data: STATIONS_ALL_BEYOND_CUTOFF } });
     const client = fakeClient(get);
 
     const result = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: DATE });
@@ -109,7 +111,10 @@ describe('findNearestStation', () => {
     if (!result.ok) throw new Error('Expected success result');
     expect(result.value.stationId).toBe('wrong-date');
 
-    const emptyResult = await findNearestStation(client, { bbox: CHIANG_MAI_BBOX, date: '2099-01-01' });
+    const emptyResult = await findNearestStation(client, {
+      bbox: CHIANG_MAI_BBOX,
+      date: '2099-01-01',
+    });
     expect(emptyResult).toEqual({
       ok: false,
       error: { kind: 'no-nearby-station', message: 'No station has a reading for 2099-01-01.' },
@@ -171,7 +176,10 @@ describe('findNearestStation', () => {
 
     const result = await findNearestStation(client, { stationId: 'known-station' });
 
-    expect(result).toEqual({ ok: true, value: { stationId: 'known-station', lat: 13.36, lng: 100.98 } });
+    expect(result).toEqual({
+      ok: true,
+      value: { stationId: 'known-station', lat: 13.36, lng: 100.98 },
+    });
     expect(get).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenCalledWith('/api/stations/known-station');
   });

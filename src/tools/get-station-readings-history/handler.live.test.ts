@@ -8,8 +8,8 @@ import type { StationReadingsHistoryApiResponse } from './handler.js';
 const SMALL_BBOX = '99,13,101,15';
 
 // Only the field this test needs — importing the full type from ../get-stations/handler.js
-// would cross the tool/tool module boundary eslint enforces (siblings can't reach into each
-// other's folders; see eslint.config.cjs's no-restricted-paths).
+// would cross the tool/tool module boundary (siblings can't reach into each other's folders;
+// see docs/claude/conventions.md#module-boundaries).
 interface StationLookupResponse {
   readonly data: readonly { readonly id: string }[];
 }

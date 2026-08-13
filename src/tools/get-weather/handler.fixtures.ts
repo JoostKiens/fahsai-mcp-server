@@ -1,6 +1,8 @@
 import type { WeatherGridPointRaw } from './handler.js';
 
-export function fakeWeatherPoint(overrides: Partial<WeatherGridPointRaw> = {}): WeatherGridPointRaw {
+export function fakeWeatherPoint(
+  overrides: Partial<WeatherGridPointRaw> = {},
+): WeatherGridPointRaw {
   return {
     lat: 10,
     lng: 100,
@@ -17,7 +19,9 @@ export const EMPTY_WEATHER_POINTS: readonly WeatherGridPointRaw[] = [];
 // A non-finite wind_direction_deg — a malformed upstream reading fahsai-client's unvalidated
 // JSON cast can't catch. Used to verify aggregation/point-mapping degrades to a null wind
 // instead of throwing (parseWindDir would throw on this; parseWindDirOrNull must not).
-export const MALFORMED_WIND_POINT: WeatherGridPointRaw = fakeWeatherPoint({ wind_direction_deg: NaN });
+export const MALFORMED_WIND_POINT: WeatherGridPointRaw = fakeWeatherPoint({
+  wind_direction_deg: NaN,
+});
 
 // Two points, same cell (well within WEATHER_CELL_SIZE_DEG of each other), both blowing
 // from due east (90 deg) at different speeds — same-direction vectors average cleanly, so
@@ -53,11 +57,13 @@ export const TWO_CELL_POINTS: readonly WeatherGridPointRaw[] = [
 
 // 1,200 points — above WEATHER_RAW_POINTS_MAX (1000) — spread across a grid so stride
 // sampling in tests isn't sampling a degenerate single-value array.
-export const LARGE_WEATHER_GRID: readonly WeatherGridPointRaw[] = Array.from({ length: 1200 }, (_, i) =>
-  fakeWeatherPoint({
-    lat: 1 + (i % 60) * 0.4,
-    lng: 89 + Math.floor(i / 60) * 0.4,
-    wind_speed_kmh: 10 + (i % 10),
-    wind_direction_deg: (i * 3) % 360,
-  }),
+export const LARGE_WEATHER_GRID: readonly WeatherGridPointRaw[] = Array.from(
+  { length: 1200 },
+  (_, i) =>
+    fakeWeatherPoint({
+      lat: 1 + (i % 60) * 0.4,
+      lng: 89 + Math.floor(i / 60) * 0.4,
+      wind_speed_kmh: 10 + (i % 10),
+      wind_direction_deg: (i * 3) % 360,
+    }),
 );

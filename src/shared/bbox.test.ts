@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { FAHSAI_DATA_BBOX, clampToDataBbox, formatBboxParam, pointInBbox, radiusKmToBbox } from './bbox.js';
+import {
+  clampToDataBbox,
+  FAHSAI_DATA_BBOX,
+  formatBboxParam,
+  pointInBbox,
+  radiusKmToBbox,
+} from './bbox.js';
 
 describe('radiusKmToBbox', () => {
   it('converts a point + radius to a symmetric bbox using a flat km-per-degree constant', () => {
@@ -26,7 +32,12 @@ describe('clampToDataBbox', () => {
 
   it('clamps a bbox that partially overlaps the data bbox', () => {
     const bbox = { west: 87, south: 15, east: 100, north: 17 };
-    expect(clampToDataBbox(bbox, FAHSAI_DATA_BBOX)).toEqual({ west: 89, south: 15, east: 100, north: 17 });
+    expect(clampToDataBbox(bbox, FAHSAI_DATA_BBOX)).toEqual({
+      west: 89,
+      south: 15,
+      east: 100,
+      north: 17,
+    });
   });
 
   it('returns null when the bbox does not overlap the data bbox at all', () => {
@@ -46,7 +57,9 @@ describe('formatBboxParam', () => {
   });
 
   it('serializes negative and decimal coordinates unchanged', () => {
-    expect(formatBboxParam({ west: -10.5, south: 40.25, east: 10, north: 50 })).toBe('-10.5,40.25,10,50');
+    expect(formatBboxParam({ west: -10.5, south: 40.25, east: 10, north: 50 })).toBe(
+      '-10.5,40.25,10,50',
+    );
   });
 });
 

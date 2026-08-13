@@ -5,10 +5,18 @@ import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import { resolveDateOrLatest } from '../../shared/latest-date.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
-import type { StationReadingLatestRaw, StationReadingsApiResponse } from '../../shared/station-readings.js';
+import type {
+  StationReadingLatestRaw,
+  StationReadingsApiResponse,
+} from '../../shared/station-readings.js';
 import { summarizeValidReadings } from '../../shared/summarize-valid-readings.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
-import type { GetStationReadingsInput, StationReadingSummary, StationReadingsSummary, StationReadingsToolResult } from './schema.js';
+import type {
+  GetStationReadingsInput,
+  StationReadingSummary,
+  StationReadingsSummary,
+  StationReadingsToolResult,
+} from './schema.js';
 
 export interface StationReadingsToolDeps {
   readonly client: FahsaiClient;

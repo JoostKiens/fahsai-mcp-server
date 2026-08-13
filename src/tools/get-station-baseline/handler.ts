@@ -209,10 +209,19 @@ export function createGetStationBaselineHandler(deps: StationBaselineToolDeps) {
 
     if (hasDay) {
       return buildToolResponse(
-        summarizeStationBaselineDay(data, minYear, maxYear, input.station_id, input.month!, input.day!),
+        summarizeStationBaselineDay(
+          data,
+          minYear,
+          maxYear,
+          input.station_id,
+          input.month!,
+          input.day!,
+        ),
       );
     }
 
-    return buildToolResponse(summarizeStationBaselineDefault(data, minYear, maxYear, input.station_id));
+    return buildToolResponse(
+      summarizeStationBaselineDefault(data, minYear, maxYear, input.station_id),
+    );
   };
 }

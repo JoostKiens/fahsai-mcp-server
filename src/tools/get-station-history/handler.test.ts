@@ -2,11 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
 import {
-  createGetStationHistoryHandler,
-  emptyStationHistorySummary,
-  summarizeStationHistory,
-} from './handler.js';
-import {
   BOGUS_STATION_ID_HISTORY,
   EMPTY_STATION_HISTORY,
   NORMAL_STATION_HISTORY,
@@ -15,6 +10,11 @@ import {
   STATION_HISTORY_WITH_NULL_FIELDS,
   STATION_HISTORY_WITH_UNDEFINED_FIELDS,
 } from './handler.fixtures.js';
+import {
+  createGetStationHistoryHandler,
+  emptyStationHistorySummary,
+  summarizeStationHistory,
+} from './handler.js';
 import { getStationHistoryInputSchema } from './schema.js';
 
 describe('summarizeStationHistory', () => {
@@ -79,7 +79,11 @@ describe('summarizeStationHistory', () => {
   });
 
   it('falls back to a null wind instead of throwing for a non-finite windDirectionDeg', () => {
-    const summary = summarizeStationHistory(STATION_HISTORY_WITH_INVALID_WIND_DIRECTION, '225572', 7);
+    const summary = summarizeStationHistory(
+      STATION_HISTORY_WITH_INVALID_WIND_DIRECTION,
+      '225572',
+      7,
+    );
 
     expect(summary.days[0].weather?.wind).toBeNull();
     expect(summary.days[0].weather?.windSpeedKmh).toBe(5.5);
@@ -126,7 +130,10 @@ describe('getStationHistoryInputSchema', () => {
   });
 
   it('rejects a malformed date', () => {
-    const result = getStationHistoryInputSchema.safeParse({ station_id: '225572', date: '07-26-2026' });
+    const result = getStationHistoryInputSchema.safeParse({
+      station_id: '225572',
+      date: '07-26-2026',
+    });
     expect(result.success).toBe(false);
   });
 });
@@ -154,7 +161,10 @@ describe('createGetStationHistoryHandler', () => {
 
     await handler({ station_id: '225572', days: 3, date: '2026-06-01' });
 
-    expect(get).toHaveBeenCalledWith('/api/stations/225572/history', { days: 3, date: '2026-06-01' });
+    expect(get).toHaveBeenCalledWith('/api/stations/225572/history', {
+      days: 3,
+      date: '2026-06-01',
+    });
   });
 
   it('treats a malformed success body (days not an array) as empty instead of throwing, with a note', async () => {

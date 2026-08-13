@@ -14,10 +14,14 @@ describe('createPlaceResolver', () => {
 
   it('converts cacheTtlSeconds to milliseconds so the cache expires at ~1 second, not ~1ms or never', async () => {
     vi.useFakeTimers();
-    const search = vi
-      .fn()
-      .mockResolvedValue({ ok: true, value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }] });
-    const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search), cacheTtlSeconds: 1 });
+    const search = vi.fn().mockResolvedValue({
+      ok: true,
+      value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }],
+    });
+    const resolver = createPlaceResolver({
+      nominatimClient: fakeNominatimClient(search),
+      cacheTtlSeconds: 1,
+    });
 
     await resolver.resolve('Bangkok');
     vi.advanceTimersByTime(1001);
@@ -27,9 +31,10 @@ describe('createPlaceResolver', () => {
   });
 
   it('resolves a single match to lat/lng and a clamped bbox', async () => {
-    const search = vi
-      .fn()
-      .mockResolvedValue({ ok: true, value: [{ lat: '18.7883', lon: '98.9853', display_name: 'Chiang Mai, Thailand' }] });
+    const search = vi.fn().mockResolvedValue({
+      ok: true,
+      value: [{ lat: '18.7883', lon: '98.9853', display_name: 'Chiang Mai, Thailand' }],
+    });
     const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search) });
 
     const result = await resolver.resolve('Chiang Mai');
@@ -45,9 +50,10 @@ describe('createPlaceResolver', () => {
   });
 
   it('caches a resolved point so a repeat query does not call Nominatim again', async () => {
-    const search = vi
-      .fn()
-      .mockResolvedValue({ ok: true, value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }] });
+    const search = vi.fn().mockResolvedValue({
+      ok: true,
+      value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }],
+    });
     const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search) });
 
     await resolver.resolve('Bangkok');
@@ -85,9 +91,10 @@ describe('createPlaceResolver', () => {
   });
 
   it('marks a resolved place outside SEA as outsideCoverage with a null bbox', async () => {
-    const search = vi
-      .fn()
-      .mockResolvedValue({ ok: true, value: [{ lat: '48.8566', lon: '2.3522', display_name: 'Paris, France' }] });
+    const search = vi.fn().mockResolvedValue({
+      ok: true,
+      value: [{ lat: '48.8566', lon: '2.3522', display_name: 'Paris, France' }],
+    });
     const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search) });
 
     const result = await resolver.resolve('Paris');
@@ -99,7 +106,9 @@ describe('createPlaceResolver', () => {
   });
 
   it('passes through a Nominatim client error', async () => {
-    const search = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'network', message: 'boom' } });
+    const search = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { kind: 'network', message: 'boom' } });
     const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search) });
 
     const result = await resolver.resolve('Bangkok');
@@ -110,9 +119,10 @@ describe('createPlaceResolver', () => {
   });
 
   it('uses an overridden radius_km instead of the default', async () => {
-    const search = vi
-      .fn()
-      .mockResolvedValue({ ok: true, value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }] });
+    const search = vi.fn().mockResolvedValue({
+      ok: true,
+      value: [{ lat: '13.7563', lon: '100.5018', display_name: 'Bangkok, Thailand' }],
+    });
     const resolver = createPlaceResolver({ nominatimClient: fakeNominatimClient(search) });
 
     const wide = await resolver.resolve('Bangkok', { radiusKm: 200 });
