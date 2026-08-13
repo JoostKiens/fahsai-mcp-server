@@ -18,12 +18,13 @@ export function placeOutsideCoverageMessage(place: string): string {
   return `"${place}" is outside Fahsai's coverage area.`;
 }
 
-// Builds a "these inputs were ignored because bbox won" note — never silently drop
-// an input with no signal back to the caller.
-function buildIgnoredFieldsNote(ignoredFields: readonly string[]): string | undefined {
+// Builds a "these inputs were ignored because X won" note — never silently drop an input with
+// no signal back to the caller. Shared with tools that add their own precedence rule on top of
+// place/bbox (e.g. get_reading_explanation's station_id, JOO-53).
+export function buildIgnoredFieldsNote(ignoredFields: readonly string[], because: string): string | undefined {
   if (ignoredFields.length === 0) return undefined;
   const verb = ignoredFields.length > 1 ? 'were' : 'was';
-  return `${ignoredFields.join(' and ')} ${verb} ignored because \`bbox\` was provided directly.`;
+  return `${ignoredFields.join(' and ')} ${verb} ignored because \`${because}\` was provided directly.`;
 }
 
 // If both `place` and `bbox` are given, `bbox` wins and the note says why — never
@@ -50,7 +51,7 @@ export async function resolveLocationInput(
       ok: true,
       value: {
         bbox: input.bbox,
-        note: buildIgnoredFieldsNote(ignoredFields),
+        note: buildIgnoredFieldsNote(ignoredFields, 'bbox'),
       },
     };
   }

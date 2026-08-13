@@ -3,7 +3,7 @@ import { fetchLatestDate } from '../../shared/latest-date.js';
 import { findNearestStation } from '../../shared/nearest-station/handler.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import type { Result } from '../../shared/result.js';
-import { resolveLocationInput } from '../../shared/resolve-location.js';
+import { buildIgnoredFieldsNote, resolveLocationInput } from '../../shared/resolve-location.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
 import type { GetReadingExplanationInput, ReadingExplanationToolResult, ScientificContext } from './schema.js';
 
@@ -22,10 +22,23 @@ function noReadingNote(stationId: string, date: string): string {
 
 // Resolved once and reused for both the nearest-station lookup and the explain/context call —
 // otherwise each would independently default to "latest available date" server-side, and those
-// two defaults could disagree (e.g. today has no ingested reading yet).
+// two defaults could disagree (e.g. today has no ingested reading yet). A no-op (no network call)
+// once a date is already known, so calling this after station resolution has already succeeded
+// costs nothing extra.
 async function resolveDate(client: FahsaiClient, date: string | undefined): Promise<Result<string, FahsaiError>> {
   if (date !== undefined) return { ok: true, value: date };
   return fetchLatestDate(client);
+}
+
+// station_id takes precedence over place/bbox/radius_km when both are somehow given (JOO-53) —
+// never silently drop an input with no signal back to the caller, same convention
+// resolveLocationInput already applies to place-vs-bbox.
+function stationIdIgnoredNote(input: GetReadingExplanationInput): string | undefined {
+  const ignoredFields: string[] = [];
+  if (input.place) ignoredFields.push('`place`');
+  if (input.bbox) ignoredFields.push('`bbox`');
+  if (input.radius_km !== undefined) ignoredFields.push('`radius_km`');
+  return buildIgnoredFieldsNote(ignoredFields, 'station_id');
 }
 
 export function createGetReadingExplanationHandler(deps: ReadingExplanationToolDeps) {
@@ -34,14 +47,12 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
     // resolveLocationInput entirely — no distance/cutoff logic applies (JOO-53).
     let locationNote: string | undefined;
     let stationResult: Awaited<ReturnType<typeof findNearestStation>>;
-    let date: string;
+    let date = input.date;
 
     if (input.station_id !== undefined) {
-      const dateResult = await resolveDate(deps.client, input.date);
-      if (!dateResult.ok) {
-        return buildToolError(dateResult.error.message);
-      }
-      date = dateResult.value;
+      locationNote = stationIdIgnoredNote(input);
+      // resolveByStationId never uses date — deferred until after this succeeds so an invalid
+      // station_id fails fast without a wasted /api/latest-date round-trip.
       stationResult = await findNearestStation(deps.client, { stationId: input.station_id });
     } else {
       const locationResult = await resolveLocationInput(input, deps.placeResolver);
@@ -50,7 +61,7 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
       }
       locationNote = locationResult.value.note;
 
-      const dateResult = await resolveDate(deps.client, input.date);
+      const dateResult = await resolveDate(deps.client, date);
       if (!dateResult.ok) {
         return buildToolError(dateResult.error.message);
       }
@@ -67,6 +78,12 @@ export function createGetReadingExplanationHandler(deps: ReadingExplanationToolD
       return buildToolError(stationResult.error.message);
     }
     const { stationId, lat, lng } = stationResult.value;
+
+    const dateResult = await resolveDate(deps.client, date);
+    if (!dateResult.ok) {
+      return buildToolError(dateResult.error.message);
+    }
+    date = dateResult.value;
 
     const fetchResult = await deps.client.get<ScientificContext>('/api/explain/context', {
       stationId,
