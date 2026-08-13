@@ -205,7 +205,10 @@ export function fakeFireTransportScientificContext(
 // from packages/types/src/baseline.ts: n=140 >= BASELINE_DISPLAY_GATE(30), iqr=4, 18.4 > p75+iqr(13)
 // => 'wellAbove'; periodLabel from dateToPeriodKey(14) => 'periodMid' => 'mid-July'. Matches the
 // golden fixture's own description ("well above ... mid-July baseline (typically 5-9 µg/m³)").
-// See JOO-48.
+// See JOO-48. `fire.nearestFireDistKm` corrected in code review (JOO-49) to a non-null value
+// consistent with `areaFireCount: 1` — every other fixture in this file pairs a positive
+// areaFireCount with a real distance, and a null here would wrongly suggest that pairing is
+// invalid; not independently re-verified against the golden fixture's raw input.
 export function fakeStationBaselineScientificContext(
   overrides: Partial<ScientificContext> = {},
 ): ScientificContext {
@@ -247,7 +250,7 @@ export function fakeStationBaselineScientificContext(
           last48h: { count: 1, totalFrpMw: 3 },
           last72h: { count: 0, totalFrpMw: 0 },
         },
-        nearestFireDistKm: null,
+        nearestFireDistKm: 58.7,
         areaScore: 1,
         areaFireCount: 1,
         areaTotalFrpMw: 3,
