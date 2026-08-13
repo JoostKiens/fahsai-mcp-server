@@ -62,6 +62,17 @@ describe('createGetFiresRangeHandler', () => {
     expect(get).not.toHaveBeenCalled();
   });
 
+  it('returns isError when location resolution fails', async () => {
+    const resolve = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
+    const get = vi.fn();
+    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+
+    const result = await handler({ place: 'Nowhereville', start: '2026-04-01', end: '2026-04-05' });
+
+    expect(result.isError).toBe(true);
+    expect(get).not.toHaveBeenCalled();
+  });
+
   it('treats a 404 as "not ingested yet" rather than an error', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({

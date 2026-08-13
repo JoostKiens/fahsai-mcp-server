@@ -97,6 +97,26 @@ describe('createNominatimClient', () => {
     expect(result.error.message).toContain('ENOTFOUND');
   });
 
+  it('returns a typed error instead of throwing when the response body is not valid JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => {
+        throw new SyntaxError('Unexpected end of JSON input');
+      },
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = createNominatimClient();
+    const result = await client.search('Bangkok');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('Expected error result');
+    expect(result.error.kind).toBe('nominatim-error');
+    expect(result.error.message).toContain('could not be parsed');
+  });
+
   it('types a non-array response body as a nominatim-error', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -123,6 +143,7 @@ describe('createNominatimClient', () => {
       json: () =>
         Promise.resolve([
           { lat: 'not-a-number', lon: '98.9853', display_name: 'Malformed Entry' },
+          null,
           { lat: '18.7883', lon: '98.9853', display_name: 'Chiang Mai, Thailand' },
         ]),
     });
