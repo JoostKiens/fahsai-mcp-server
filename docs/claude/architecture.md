@@ -24,8 +24,12 @@ src/
     place-resolver/            # Nominatim geocoding + place→bbox conversion, with in-process cache
     schema/                       # shared Zod fragments used by >1 tool (locationInput, isoDateSchema)
     fires/                          # domain logic genuinely shared by get_fires + get_fires_range
-    aqi.ts, wind.ts, bbox.ts,         # small single-file cross-cutting utilities, each used by
-    tool-response.ts, result.ts        # multiple tools or shared modules
+    nearest-station/                 # bbox/station_id → nearest station resolution (JOO-46) — see
+                                       # "Reused logic" below for why this is shared/ despite one consumer
+    aqi.ts, wind.ts, bbox.ts,          # small single-file cross-cutting utilities, each used by
+    date-range.ts, latest-date.ts,      # multiple tools or shared modules
+    station-readings.ts, tool-descriptions.ts,
+    resolve-location.ts, tool-response.ts, result.ts
 ```
 
 Two-layer, colocated-per-tool structure (JOO-43): each tool owns its schema and handler in one folder; `shared/` holds only what's genuinely reused across tools. **Import boundaries are enforced by ESLint (`import-x/no-restricted-paths`), not just convention:** `shared/*` must never import from `tools/*`, and `tools/<a>/*` must never import from `tools/<b>/*` — if two tools need the same thing, promote it into `shared/` instead of reaching across. The rule of thumb for where logic lives: if it's used by exactly one tool, it stays in that tool's own folder (even if it's meaty, like `get-station-baseline/handler.ts`); it only moves to `shared/` once a second tool needs it (like `shared/fires/`, used by both fire tools). See `mcp-tools.md` for the full checklist when adding or changing a tool.
@@ -72,6 +76,8 @@ The resolver:
 **`shared/aqi.ts`** — classifies a raw PM2.5 µg/m³ value into the EPA category Fahsai's frontend already uses (Good/Moderate/Unhealthy for Sensitive Groups/Unhealthy/Very Unhealthy/Hazardous), step-function only (no need for the frontend's lerped-gradient variant, which exists purely for a smooth chart line). This is the project's "deterministic interpretation in code, not delegated to the LLM" principle applied to air quality specifically — every tool returning a PM2.5 number attaches its category.
 
 **`shared/wind.ts`** — a direct port of Fahsai's `parseWindDir`: given a meteorological `directionDeg` (0°=N, always the direction wind is coming **FROM**), returns `{ fromLabel, toLabel, fromQuadrant, toQuadrant }`. Never apply `+ 180` at a call site — this exact bug shipped twice on the Fahsai frontend (see its `conventions.md`) precisely because the correct logic wasn't centralized. It is here, and nowhere else in this repo should compute a compass label from `directionDeg` directly.
+
+**`shared/nearest-station/`** — `findNearestStation(client, input)` resolves either a `station_id` (exact match via `/api/stations/:id`, no distance logic) or a `bbox` (fetches `/api/station-readings/latest`, picks the closest station to the bbox center by haversine distance, rejecting anything beyond a 50km cutoff — distinct from the place resolver's 55km *search* radius above). It's a deliberate exception to this project's usual rule of thumb (Directory structure, above): it was built directly in `shared/` by JOO-46 as forward-looking groundwork for the multi-ticket Reading Explanation feature, *before* `get_reading_explanation` (JOO-47) existed to consume it — not because a second tool needed `findNearestStation` itself. As of this writing it still has exactly one consumer, `get_reading_explanation`; `get_station_readings` calls `/api/station-readings/latest` directly and has its own separate bbox-scoped list-all logic, it does not call `findNearestStation`. Contrast this with the *raw* `/api/station-readings/latest` response types (`shared/station-readings.ts`) and `fetchLatestDate()` (`shared/latest-date.ts`), which were promoted to `shared/` by the genuine 2-consumer rule — `get_station_readings` and `nearest-station` both need the raw types, `get_latest_date` and `nearest-station` both need `fetchLatestDate()`.
 
 ## Transports
 
