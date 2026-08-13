@@ -75,7 +75,7 @@ describe('createFahsaiClient', () => {
       ok: false,
       status: 429,
       statusText: 'Too Many Requests',
-      text: () => Promise.resolve(JSON.stringify({ message: 'Rate limited' })),
+      text: () => Promise.resolve(JSON.stringify({ message: 'Rate limited', error: 'rate_limited' })),
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -87,6 +87,7 @@ describe('createFahsaiClient', () => {
       throw new Error('Expected client-error result');
     }
     expect(result.error.message).toContain('Rate limited');
+    expect(result.error.message).not.toContain('rate_limited');
   });
 
   it('types a 5xx as a server error', async () => {
