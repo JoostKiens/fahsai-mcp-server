@@ -3,14 +3,17 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createGetReadingExplanationHandler, type ReadingExplanationToolDeps } from './handler.js';
 import { getReadingExplanationInputSchema, readingExplanationOutputSchema } from './schema.js';
 
-export function registerGetReadingExplanation(server: McpServer, deps: ReadingExplanationToolDeps): void {
+export function registerGetReadingExplanation(
+  server: McpServer,
+  deps: ReadingExplanationToolDeps,
+): void {
   server.registerTool(
     'get_reading_explanation',
     {
       title: 'Get a structured explanation for a station PM2.5 reading',
       description:
         'Structured scientific context (transport trajectory, upwind fire pressure, peer stations, 7-day trend, ' +
-        'seasonal baseline) for the nearest station\'s PM2.5 reading near a place or bounding box, for reasoning ' +
+        "seasonal baseline) for the nearest station's PM2.5 reading near a place or bounding box, for reasoning " +
         'about *why* a reading looks the way it does. If `station_id` is given (e.g. from a prior get_stations or ' +
         'get_station_history call), it is used as an exact match with no distance/cutoff logic, taking precedence ' +
         'over `place`/`bbox` if both are somehow given. This is not a pre-written explanation — it is data for the ' +

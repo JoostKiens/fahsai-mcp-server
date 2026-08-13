@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FahsaiClient } from '../fahsai-client/client.js';
 import { EMPTY_FIRES, LARGE_FIRES, SMALL_FIRES } from './handler.fixtures.js';
 import {
-  FIRE_LIST_TRUNCATION_THRESHOLD,
   emptyFireSummary,
+  FIRE_LIST_TRUNCATION_THRESHOLD,
   fetchAndSummarizeFires,
   filterByConfidence,
   summarizeFires,
@@ -63,7 +63,11 @@ describe('summarizeFires', () => {
   });
 
   it('sorts a null-FRP point last, dropping it first when truncating', () => {
-    const withDistinctFrp = Array.from({ length: 50 }, (_, i) => ({ ...SMALL_FIRES[0], id: i + 1, frp: 50 - i }));
+    const withDistinctFrp = Array.from({ length: 50 }, (_, i) => ({
+      ...SMALL_FIRES[0],
+      id: i + 1,
+      frp: 50 - i,
+    }));
     const points = [...withDistinctFrp, { ...SMALL_FIRES[0], id: 51, frp: null }];
 
     const summary = summarizeFires(points);

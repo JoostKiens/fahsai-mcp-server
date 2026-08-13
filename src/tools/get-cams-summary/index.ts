@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { CALL_GET_LATEST_DATE_FIRST_NOTE } from '../../shared/tool-descriptions.js';
-import { createGetCamsSummaryHandler, type CamsSummaryToolDeps } from './handler.js';
+import { type CamsSummaryToolDeps, createGetCamsSummaryHandler } from './handler.js';
 import {
   CAMS_SUMMARY_RANGE_MAX_DAYS,
   camsSummarySeriesOutputSchema,

@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { CALL_GET_LATEST_DATE_FIRST_NOTE } from '../../shared/tool-descriptions.js';
-import { createGetCamsHandler, type CamsToolDeps } from './handler.js';
+import { type CamsToolDeps, createGetCamsHandler } from './handler.js';
 import { camsSummaryOutputSchema, getCamsInputSchema } from './schema.js';
 
 export function registerGetCams(server: McpServer, deps: CamsToolDeps): void {

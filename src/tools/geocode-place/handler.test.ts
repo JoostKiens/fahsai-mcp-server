@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CHIANG_MAI_BBOX, fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
+import {
+  CHIANG_MAI_BBOX,
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import { createGeocodePlaceHandler } from './handler.js';
 
 describe('createGeocodePlaceHandler', () => {
@@ -28,7 +32,11 @@ describe('createGeocodePlaceHandler', () => {
   it('notes when the match was ambiguous', async () => {
     const resolve = vi.fn().mockResolvedValue({
       ok: true,
-      value: fakeResolvedPlace({ query: 'Springfield', matchedName: 'Springfield, Illinois, USA', otherMatchesCount: 1 }),
+      value: fakeResolvedPlace({
+        query: 'Springfield',
+        matchedName: 'Springfield, Illinois, USA',
+        otherMatchesCount: 1,
+      }),
     });
     const handler = createGeocodePlaceHandler({ placeResolver: fakePlaceResolver(resolve) });
 
@@ -39,7 +47,9 @@ describe('createGeocodePlaceHandler', () => {
   });
 
   it('returns isError when the place cannot be found', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
     const handler = createGeocodePlaceHandler({ placeResolver: fakePlaceResolver(resolve) });
 
     const result = await handler({ place: 'asdkjfhaklsdjfh' });

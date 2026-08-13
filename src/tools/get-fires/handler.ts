@@ -1,5 +1,5 @@
 import { formatBboxParam } from '../../shared/bbox.js';
-import { fetchAndSummarizeFires, type FiresToolDeps } from '../../shared/fires/handler.js';
+import { type FiresToolDeps, fetchAndSummarizeFires } from '../../shared/fires/handler.js';
 import type { FireToolResult } from '../../shared/fires/schema.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
 import { buildToolError } from '../../shared/tool-response.js';

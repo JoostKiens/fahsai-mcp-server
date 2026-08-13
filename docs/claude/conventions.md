@@ -92,10 +92,10 @@ chore(release): bump to v0.1.0
 
 ## Code style
 
-- Prettier for formatting, ESLint for code quality — same config shape as `fahsai`: single quotes, semicolons, trailing commas, 100 char print width.
-- ESLint flat config (`eslint.config.js`), `@typescript-eslint` recommended-type-checked.
+- Biome (`biome.json`) handles both formatting and linting — replaced ESLint + Prettier. Formatter: single quotes, semicolons always, trailing commas everywhere, 100 char line width (same shape as the old Prettier config).
+- Linter uses Biome's `recommended` preset plus `nursery.noFloatingPromises` (opt-in — nursery rules aren't included in `recommended`). Biome's type-aware linting is intentionally partial (type-inference based, not a full type-checker) — it's a known, accepted step down from `@typescript-eslint`'s `recommended-type-checked`, not a bug.
 - Never use loose equality (`==`/`!=`). Always strict (`===`/`!==`). For null/undefined checks, use explicit `=== null || === undefined` or TypeScript narrowing.
-- Run `npm run format` (or your editor's format-on-save) before committing.
+- Run `npm run check` (or `npm run format`) before committing.
 
 ## Error handling
 
@@ -103,7 +103,11 @@ Follow `gfw-mcp-server`'s `Result`-over-exceptions pattern for anything the Fahs
 
 ## Module boundaries
 
-Each tool's `index.ts` stays thin: registration only, wiring `schema.ts` + `handler.ts` into `server.registerTool(...)`. Any logic reused by two or more tools moves to `src/shared/` — a flat file for a small utility, its own `shared/<name>/schema.ts` + `handler.ts` folder for a meatier shared domain module (see `shared/fires/`) — as appropriate; see `mcp-tools.md`'s "where does this belong" section. This is enforced, not just conventional: ESLint's `import-x/no-restricted-paths` fails the build on `shared/*` importing from `tools/*`, or one tool importing from another tool's folder. A tool's `handler.ts` that's grown a large private helper function is *not* automatically a signal to promote it to `shared/` — per JOO-43's rule of thumb, logic stays in a tool's own folder as long as exactly one tool uses it, however large; it only moves once a second tool needs it.
+Each tool's `index.ts` stays thin: registration only, wiring `schema.ts` + `handler.ts` into `server.registerTool(...)`. Any logic reused by two or more tools moves to `src/shared/` — a flat file for a small utility, its own `shared/<name>/schema.ts` + `handler.ts` folder for a meatier shared domain module (see `shared/fires/`) — as appropriate; see `mcp-tools.md`'s "where does this belong" section. `shared/*` must never import from `tools/*`, and one tool must never import from another tool's folder.
+
+**This is convention, not automated enforcement.** The pre-Biome ESLint config enforced it via `import-x/no-restricted-paths`, CI-checked. Biome's `noRestrictedImports` rule matches the *literal import specifier text* rather than the resolved file path: it could catch `shared → tools` imports (they always route through a literal `../tools/...` segment) via a `biome.json` override, but not `tools → sibling-tool` imports (the short relative form, `../get-cams/handler.js`, never contains a matchable "tools" or sibling-name literal without per-folder config). Reproducing either half of the old guarantee would need a hand-maintained `biome.json` override or a small custom script — judged not worth the added maintenance for a small solo project, so neither direction is checked in `biome.json`. Watch for violations in review.
+
+A tool's `handler.ts` that's grown a large private helper function is *not* automatically a signal to promote it to `shared/` — per JOO-43's rule of thumb, logic stays in a tool's own folder as long as exactly one tool uses it, however large; it only moves once a second tool needs it.
 
 ## Naming
 

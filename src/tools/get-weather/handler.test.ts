@@ -1,14 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
-import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
 import {
-  aggregateWeatherPoints,
-  createGetWeatherHandler,
-  emptyWeatherSummary,
-  summarizeWeather,
-  WEATHER_RAW_POINTS_MAX,
-} from './handler.js';
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import {
   EMPTY_WEATHER_POINTS,
   fakeWeatherPoint,
@@ -17,6 +13,13 @@ import {
   TWO_CELL_POINTS,
   TWO_POINTS_SAME_DIRECTION,
 } from './handler.fixtures.js';
+import {
+  aggregateWeatherPoints,
+  createGetWeatherHandler,
+  emptyWeatherSummary,
+  summarizeWeather,
+  WEATHER_RAW_POINTS_MAX,
+} from './handler.js';
 import { getWeatherInputSchema } from './schema.js';
 
 describe('aggregateWeatherPoints', () => {
@@ -110,7 +113,10 @@ describe('createGetWeatherHandler', () => {
   it('resolves the place, fetches, and summarizes on the happy path', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: TWO_POINTS_SAME_DIRECTION } });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', date: '2026-04-18' });
 
@@ -119,7 +125,10 @@ describe('createGetWeatherHandler', () => {
       bbox: '98.5,18.3,99.5,19.3',
     });
     expect(result.isError).toBeUndefined();
-    const structured = result.structuredContent as { total: number; summary: { windSpeedKmh: number } };
+    const structured = result.structuredContent as {
+      total: number;
+      summary: { windSpeedKmh: number };
+    };
     expect(structured.total).toBe(2);
     expect(structured.summary.windSpeedKmh).toBeCloseTo(15);
   });
@@ -130,7 +139,10 @@ describe('createGetWeatherHandler', () => {
       ok: false,
       error: { kind: 'not-found', status: 404, message: 'No data' },
     });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', date: '2099-01-01' });
 
@@ -146,7 +158,10 @@ describe('createGetWeatherHandler', () => {
       ok: false,
       error: { kind: 'server-error', status: 500, message: 'Fahsai API server error' },
     });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', date: '2026-04-18' });
 
@@ -154,9 +169,14 @@ describe('createGetWeatherHandler', () => {
   });
 
   it('returns isError when location resolution fails', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
     const get = vi.fn();
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Nowhereville', date: '2026-04-18' });
 
@@ -167,7 +187,10 @@ describe('createGetWeatherHandler', () => {
   it('surfaces the location-resolution note (e.g. bbox overriding place) in the response', async () => {
     const resolve = vi.fn();
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: [] } });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
     const bbox = { west: 100, south: 13, east: 101, north: 14 };
 
     const result = await handler({ place: 'Chiang Mai', bbox, date: '2026-04-18' });
@@ -183,7 +206,10 @@ describe('createGetWeatherHandler', () => {
       ok: false,
       error: { kind: 'not-found', status: 404, message: 'No data' },
     });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
     const bbox = { west: 100, south: 13, east: 101, north: 14 };
 
     const result = await handler({ place: 'Chiang Mai', bbox, date: '2099-01-01' });
@@ -197,9 +223,16 @@ describe('createGetWeatherHandler', () => {
   it('passes include_raw_points through to the summary', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: TWO_POINTS_SAME_DIRECTION } });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
-    const result = await handler({ place: 'Chiang Mai', date: '2026-04-18', include_raw_points: true });
+    const result = await handler({
+      place: 'Chiang Mai',
+      date: '2026-04-18',
+      include_raw_points: true,
+    });
 
     const structured = result.structuredContent as { rawPoints?: unknown[] };
     expect(structured.rawPoints).toHaveLength(2);
@@ -208,7 +241,10 @@ describe('createGetWeatherHandler', () => {
   it('treats a malformed (non-object) success body as an empty result rather than throwing', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: null });
-    const handler = createGetWeatherHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetWeatherHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', date: '2026-04-18' });
 

@@ -1,6 +1,8 @@
 import type { StationHistoryDayRaw } from './handler.js';
 
-export function fakeStationHistoryDay(overrides: Partial<StationHistoryDayRaw> = {}): StationHistoryDayRaw {
+export function fakeStationHistoryDay(
+  overrides: Partial<StationHistoryDayRaw> = {},
+): StationHistoryDayRaw {
   return {
     date: '2026-07-25',
     pm25: 19.7,
@@ -36,7 +38,13 @@ export const STATION_HISTORY_WITH_NO_DATA_DAY: readonly StationHistoryDayRaw[] =
 
 // weather:null and baseline:null preserved as explicit nulls, not omitted.
 export const STATION_HISTORY_WITH_NULL_FIELDS: readonly StationHistoryDayRaw[] = [
-  fakeStationHistoryDay({ date: '2026-07-26', pm25: 0, readingCount: 0, weather: null, baseline: null }),
+  fakeStationHistoryDay({
+    date: '2026-07-26',
+    pm25: 0,
+    readingCount: 0,
+    weather: null,
+    baseline: null,
+  }),
 ];
 
 // An invalid station_id doesn't 404 — it returns a full window of the no-data sentinel with

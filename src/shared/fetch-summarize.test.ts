@@ -26,12 +26,17 @@ describe('fetchAndSummarize', () => {
   it('extracts, summarizes, and responds on success', async () => {
     const get = vi.fn().mockResolvedValue({ ok: true, value: { items: [1, 2, 3] } });
 
-    const result = await fetchAndSummarize(fakeClient(get), '/x', { date: '2026-01-01' }, {
-      extractData: (body) => body as FakeRaw,
-      summarize,
-      emptySummary: EMPTY,
-      notFoundNote: 'not found',
-    });
+    const result = await fetchAndSummarize(
+      fakeClient(get),
+      '/x',
+      { date: '2026-01-01' },
+      {
+        extractData: (body) => body as FakeRaw,
+        summarize,
+        emptySummary: EMPTY,
+        notFoundNote: 'not found',
+      },
+    );
 
     expect(get).toHaveBeenCalledWith('/x', { date: '2026-01-01' });
     expect(result.structuredContent).toEqual({ total: 3 });
@@ -43,13 +48,18 @@ describe('fetchAndSummarize', () => {
       error: { kind: 'not-found', status: 404, message: 'no data' },
     });
 
-    const result = await fetchAndSummarize(fakeClient(get), '/x', {}, {
-      extractData: (body) => body as FakeRaw,
-      summarize,
-      emptySummary: EMPTY,
-      notFoundNote: 'No data for this date.',
-      locationNote: '`place` was ignored because `bbox` was provided directly.',
-    });
+    const result = await fetchAndSummarize(
+      fakeClient(get),
+      '/x',
+      {},
+      {
+        extractData: (body) => body as FakeRaw,
+        summarize,
+        emptySummary: EMPTY,
+        notFoundNote: 'No data for this date.',
+        locationNote: '`place` was ignored because `bbox` was provided directly.',
+      },
+    );
 
     expect(result.structuredContent).toEqual({
       total: 0,
@@ -65,12 +75,17 @@ describe('fetchAndSummarize', () => {
     const extractData = vi.fn();
     const summarizeSpy = vi.fn(summarize);
 
-    const result = await fetchAndSummarize(fakeClient(get), '/x', {}, {
-      extractData,
-      summarize: summarizeSpy,
-      emptySummary: EMPTY,
-      notFoundNote: 'not found',
-    });
+    const result = await fetchAndSummarize(
+      fakeClient(get),
+      '/x',
+      {},
+      {
+        extractData,
+        summarize: summarizeSpy,
+        emptySummary: EMPTY,
+        notFoundNote: 'not found',
+      },
+    );
 
     expect(result.isError).toBe(true);
     expect(extractData).not.toHaveBeenCalled();

@@ -5,7 +5,10 @@ import {
   EMPTY_STATION_READINGS,
   STATIONS_BY_DISTANCE,
 } from '../../shared/nearest-station/handler.fixtures.js';
-import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
+import {
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import {
   fakeFireTransportScientificContext,
   fakeOutlierHighScientificContext,
@@ -279,7 +282,10 @@ describe('createGetReadingExplanationHandler', () => {
   it('resolves via station_id when given, bypassing place/bbox resolution entirely', async () => {
     const resolve = vi.fn();
     const get = pathBasedGet({
-      '/api/stations/known-station': { ok: true, value: { id: 'known-station', lat: 13.36, lng: 100.98 } },
+      '/api/stations/known-station': {
+        ok: true,
+        value: { id: 'known-station', lat: 13.36, lng: 100.98 },
+      },
       '/api/explain/context': { ok: true, value: fakeScientificContext() },
     });
     const handler = createGetReadingExplanationHandler({
@@ -315,13 +321,18 @@ describe('createGetReadingExplanationHandler', () => {
     const result = await handler({ station_id: 'unknown-station', date: DATE });
 
     expect(result.isError).toBeUndefined();
-    expect(result.structuredContent).toEqual({ note: 'No station found with id "unknown-station".' });
+    expect(result.structuredContent).toEqual({
+      note: 'No station found with id "unknown-station".',
+    });
     expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('notes that place/bbox/radius_km were ignored when station_id is also given', async () => {
     const get = pathBasedGet({
-      '/api/stations/known-station': { ok: true, value: { id: 'known-station', lat: 13.36, lng: 100.98 } },
+      '/api/stations/known-station': {
+        ok: true,
+        value: { id: 'known-station', lat: 13.36, lng: 100.98 },
+      },
       '/api/explain/context': { ok: true, value: fakeScientificContext() },
     });
     const resolve = vi.fn();

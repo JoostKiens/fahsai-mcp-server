@@ -3,7 +3,9 @@ import type { ScientificContext } from './schema.js';
 // Grounded in a real GET /api/explain/context response — station 5554536 (Chalermprakiat Rama IX
 // Park), 2026-08-05, verified live 2026-08-07 (JOO-47). Trimmed to one entry per array for
 // readability; the full arrays' shapes are exercised by the live test instead.
-export function fakeScientificContext(overrides: Partial<ScientificContext> = {}): ScientificContext {
+export function fakeScientificContext(
+  overrides: Partial<ScientificContext> = {},
+): ScientificContext {
   return {
     station: { name: 'Chalermprakiat Rama IX Park', lat: 15.173475, lng: 100.132105 },
     currentPm25: 21.3,
@@ -22,14 +24,27 @@ export function fakeScientificContext(overrides: Partial<ScientificContext> = {}
     transport: {
       trajectory: {
         hoursTraced: 66,
-        origin: { lat: 10.262774546047254, lng: 96.84235861830243, region: 'Andaman Sea', date: '2026-08-03' },
+        origin: {
+          lat: 10.262774546047254,
+          lng: 96.84235861830243,
+          region: 'Andaman Sea',
+          date: '2026-08-03',
+        },
         corridorWidthKm: 185.37925636007785,
         meanWindSpeedKmh: 15.44827136333982,
         waypoints: [{ lat: 15.173475, lng: 100.132105, region: 'Thailand' }],
         originIsWater: true,
       },
       cams: {
-        samples: [{ lat: 14.495014483921112, lng: 98.03535608399437, date: '2026-08-05', pm25: 2.6, category: 'Good' }],
+        samples: [
+          {
+            lat: 14.495014483921112,
+            lng: 98.03535608399437,
+            date: '2026-08-05',
+            pm25: 2.6,
+            category: 'Good',
+          },
+        ],
         maxPm25: 12.9,
         suppressionActive: false,
         stationExceedsCamsMax: false,
@@ -59,7 +74,9 @@ export function fakeScientificContext(overrides: Partial<ScientificContext> = {}
       unweightedMedian: 8.8,
       range: { min: 4.86, max: 14.5 },
       distribution: null,
-      stations: [{ name: 'โรงเรียนราชประชานุเคราะห์ 46', value: 14.5, distanceKm: 1.5009898874061505 }],
+      stations: [
+        { name: 'โรงเรียนราชประชานุเคราะห์ 46', value: 14.5, distanceKm: 1.5009898874061505 },
+      ],
     },
     outlier: null,
     seasonContext:
@@ -221,7 +238,9 @@ export function fakeStationBaselineScientificContext(
     sevenDayAverages: [{ date: '2026-07-14', value: 18.4, category: 'Moderate' }],
     wind: { days: [{ date: '2026-07-14', directionLabel: 'SSW', speedKmh: 8.4 }] },
     weatherContext: {
-      days: [{ date: '2026-07-14', precipitationMm: 0.6, humidity: 78, highHumidityWarning: false }],
+      days: [
+        { date: '2026-07-14', precipitationMm: 0.6, humidity: 78, highHumidityWarning: false },
+      ],
       totalPrecipitationMm: 11.4,
       trajectoryPrecipitationMm: 9.8,
       availableDayCount: 5,
@@ -272,7 +291,12 @@ export function fakeStationBaselineScientificContext(
     outlier: null,
     seasonContext:
       'Monsoon season in mainland Southeast Asia (May–Sep). Fire activity is low; elevated PM2.5 is more likely from urban/industrial sources or stagnant air pockets.',
-    stationBaseline: { category: 'wellAbove', typicalLow: 5, typicalHigh: 9, periodLabel: 'mid-July' },
+    stationBaseline: {
+      category: 'wellAbove',
+      typicalLow: 5,
+      typicalHigh: 9,
+      periodLabel: 'mid-July',
+    },
     ...overrides,
   };
 }

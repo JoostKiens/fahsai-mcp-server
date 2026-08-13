@@ -2,16 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
 import {
-  createGetStationReadingsHistoryHandler,
-  emptyStationReadingsHistorySummary,
-  summarizeStationReadingsHistory,
-} from './handler.js';
-import {
   EMPTY_STATION_READINGS_HISTORY,
   SMALL_STATION_READINGS_HISTORY,
   SPARSE_STATION_READINGS_HISTORY,
   STATION_READINGS_HISTORY_WITH_INVALID_VALUE,
 } from './handler.fixtures.js';
+import {
+  createGetStationReadingsHistoryHandler,
+  emptyStationReadingsHistorySummary,
+  summarizeStationReadingsHistory,
+} from './handler.js';
 import { getStationReadingsHistoryInputSchema } from './schema.js';
 
 describe('summarizeStationReadingsHistory', () => {
@@ -49,7 +49,11 @@ describe('summarizeStationReadingsHistory', () => {
   });
 
   it('summarizes a sparse/gappy series with no special-casing', () => {
-    const summary = summarizeStationReadingsHistory(SPARSE_STATION_READINGS_HISTORY, '6289999', 168);
+    const summary = summarizeStationReadingsHistory(
+      SPARSE_STATION_READINGS_HISTORY,
+      '6289999',
+      168,
+    );
 
     expect(summary.total).toBe(2);
     expect(summary.readings).toHaveLength(2);

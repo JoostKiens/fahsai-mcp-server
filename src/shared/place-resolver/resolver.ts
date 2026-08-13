@@ -1,9 +1,14 @@
-import { FAHSAI_DATA_BBOX, clampToDataBbox, radiusKmToBbox } from '../bbox.js';
+import { clampToDataBbox, FAHSAI_DATA_BBOX, radiusKmToBbox } from '../bbox.js';
 import type { Result } from '../result.js';
 import { Cache } from './cache.js';
 import { DEFAULT_CACHE_TTL_SECONDS, DEFAULT_RADIUS_KM } from './constants.js';
 import { createNominatimClient, type NominatimClient } from './nominatim-client.js';
-import type { PlaceResolver, PlaceResolverError, ResolvePlaceOptions, ResolvedPlace } from './types.js';
+import type {
+  PlaceResolver,
+  PlaceResolverError,
+  ResolvedPlace,
+  ResolvePlaceOptions,
+} from './types.js';
 
 interface CachedPoint {
   readonly matchedName: string;
@@ -37,7 +42,10 @@ export function createPlaceResolver(options: CreatePlaceResolverOptions = {}): P
         return { ok: false, error: searchResult.error };
       }
       if (searchResult.value.length === 0) {
-        return { ok: false, error: { kind: 'not-found', message: `No location found for "${trimmedQuery}".` } };
+        return {
+          ok: false,
+          error: { kind: 'not-found', message: `No location found for "${trimmedQuery}".` },
+        };
       }
 
       const [top, ...rest] = searchResult.value;

@@ -42,7 +42,8 @@ These aren't style preferences — violating them either breaks against the real
 npm run build       # compile TypeScript
 npm run dev          # run with watch mode
 npm run start         # run compiled server (STDIO)
-npm run lint          # eslint
+npm run lint          # biome lint (read-only)
+npm run check          # biome check --write (lint + format, autofix)
 npm run test           # unit tests (fixtures only, no network)
 npm run test:live       # live API smoke tests against the Fahsai backend (no auth required)
 ```

@@ -1,6 +1,8 @@
 import type { StationBaselineDayRaw } from './handler.js';
 
-export function fakeStationBaselineDay(overrides: Partial<StationBaselineDayRaw> = {}): StationBaselineDayRaw {
+export function fakeStationBaselineDay(
+  overrides: Partial<StationBaselineDayRaw> = {},
+): StationBaselineDayRaw {
   return {
     month: 1,
     day: 1,
@@ -22,7 +24,14 @@ export const NORMAL_STATION_BASELINE: readonly StationBaselineDayRaw[] = [
   fakeStationBaselineDay({ month: 2, day: 1, medianPm25: 40, n: 45 }),
   fakeStationBaselineDay({ month: 3, day: 15, medianPm25: 60, n: 50 }),
   fakeStationBaselineDay({ month: 4, day: 30, medianPm25: 35, n: 40 }),
-  fakeStationBaselineDay({ month: 7, day: 26, medianPm25: 16, p25Pm25: 13.9, p75Pm25: 20.3, n: 63 }),
+  fakeStationBaselineDay({
+    month: 7,
+    day: 26,
+    medianPm25: 16,
+    p25Pm25: 13.9,
+    p75Pm25: 20.3,
+    n: 63,
+  }),
   fakeStationBaselineDay({ month: 7, day: 27, medianPm25: 15.3, n: 3 }),
   fakeStationBaselineDay({ month: 10, day: 1, medianPm25: 20, n: 55 }),
 ];

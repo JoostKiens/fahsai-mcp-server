@@ -2,14 +2,20 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
 import { SMALL_FIRES } from '../../shared/fires/handler.fixtures.js';
-import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
+import {
+  fakePlaceResolver,
+  fakeResolvedPlace,
+} from '../../shared/place-resolver/place-resolver.fixtures.js';
 import { createGetFiresRangeHandler } from './handler.js';
 
 describe('createGetFiresRangeHandler', () => {
   it('resolves, fetches the range endpoint, and summarizes on the happy path', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', start: '2026-04-01', end: '2026-04-05' });
 
@@ -26,7 +32,10 @@ describe('createGetFiresRangeHandler', () => {
   it('filters results by confidence client-side (the API param has no server-side effect)', async () => {
     const resolve = vi.fn().mockResolvedValue({ ok: true, value: fakeResolvedPlace() });
     const get = vi.fn().mockResolvedValue({ ok: true, value: { data: SMALL_FIRES } });
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({
       place: 'Chiang Mai',
@@ -42,7 +51,10 @@ describe('createGetFiresRangeHandler', () => {
   it('rejects an 11-day range without ever calling the client', async () => {
     const resolve = vi.fn();
     const get = vi.fn();
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', start: '2026-04-01', end: '2026-04-12' });
 
@@ -54,7 +66,10 @@ describe('createGetFiresRangeHandler', () => {
   it('rejects an invalid calendar date (e.g. Feb 30) without ever calling the client', async () => {
     const resolve = vi.fn();
     const get = vi.fn();
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', start: '2026-02-25', end: '2026-02-30' });
 
@@ -63,9 +78,14 @@ describe('createGetFiresRangeHandler', () => {
   });
 
   it('returns isError when location resolution fails', async () => {
-    const resolve = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { kind: 'not-found', message: 'No match' } });
     const get = vi.fn();
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Nowhereville', start: '2026-04-01', end: '2026-04-05' });
 
@@ -79,7 +99,10 @@ describe('createGetFiresRangeHandler', () => {
       ok: false,
       error: { kind: 'not-found', status: 404, message: 'No data' },
     });
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
 
     const result = await handler({ place: 'Chiang Mai', start: '2099-01-01', end: '2099-01-05' });
 
@@ -95,10 +118,18 @@ describe('createGetFiresRangeHandler', () => {
       ok: false,
       error: { kind: 'not-found', status: 404, message: 'No data' },
     });
-    const handler = createGetFiresRangeHandler({ client: fakeClient(get), placeResolver: fakePlaceResolver(resolve) });
+    const handler = createGetFiresRangeHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
     const bbox = { west: 100, south: 13, east: 101, north: 14 };
 
-    const result = await handler({ place: 'Chiang Mai', bbox, start: '2099-01-01', end: '2099-01-05' });
+    const result = await handler({
+      place: 'Chiang Mai',
+      bbox,
+      start: '2099-01-01',
+      end: '2099-01-05',
+    });
 
     const structured = result.structuredContent as { note?: string };
     expect(structured.note).toBe(

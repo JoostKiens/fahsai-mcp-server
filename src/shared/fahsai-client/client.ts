@@ -9,7 +9,10 @@ export type FahsaiError =
   | { readonly kind: 'network'; readonly message: string };
 
 export interface FahsaiClient {
-  readonly get: <T = unknown>(path: string, params?: FahsaiQueryParams) => Promise<Result<T, FahsaiError>>;
+  readonly get: <T = unknown>(
+    path: string,
+    params?: FahsaiQueryParams,
+  ) => Promise<Result<T, FahsaiError>>;
 }
 
 // Fahsai's backend URL — every user of this server talks to the same one, so this
@@ -60,10 +63,18 @@ function normalizeError(status: number, bodyText: string, statusText: string): F
   }
 
   if (status >= 500) {
-    return { kind: 'server-error', status, message: `Fahsai API server error (${status}): ${message}` };
+    return {
+      kind: 'server-error',
+      status,
+      message: `Fahsai API server error (${status}): ${message}`,
+    };
   }
 
-  return { kind: 'client-error', status, message: `Fahsai API rejected the request (${status}): ${message}` };
+  return {
+    kind: 'client-error',
+    status,
+    message: `Fahsai API rejected the request (${status}): ${message}`,
+  };
 }
 
 export function createFahsaiClient(): FahsaiClient {
@@ -78,7 +89,10 @@ export function createFahsaiClient(): FahsaiClient {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown fetch error';
-      return { ok: false, error: { kind: 'network', message: `Request to Fahsai API failed: ${message}` } };
+      return {
+        ok: false,
+        error: { kind: 'network', message: `Request to Fahsai API failed: ${message}` },
+      };
     }
 
     if (!response.ok) {

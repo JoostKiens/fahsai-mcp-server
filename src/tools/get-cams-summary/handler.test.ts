@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeClient } from '../../shared/fahsai-client/client.fixtures.js';
+import { EMPTY_CAMS_SUMMARY, TEN_DAY_CAMS_SUMMARY } from './handler.fixtures.js';
 import {
   createGetCamsSummaryHandler,
   emptyCamsSummarySeries,
   summarizeCamsSummary,
 } from './handler.js';
-import { EMPTY_CAMS_SUMMARY, TEN_DAY_CAMS_SUMMARY } from './handler.fixtures.js';
 import { CAMS_SUMMARY_RANGE_MAX_DAYS } from './schema.js';
 
 describe('summarizeCamsSummary', () => {

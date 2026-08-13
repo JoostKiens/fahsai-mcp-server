@@ -35,7 +35,10 @@ describe('createFahsaiClient', () => {
       ok: false,
       status: 404,
       statusText: 'Not Found',
-      text: () => Promise.resolve(JSON.stringify({ error: 'No weather data for this date. Run the ingest job.' })),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ error: 'No weather data for this date. Run the ingest job.' }),
+        ),
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -75,7 +78,8 @@ describe('createFahsaiClient', () => {
       ok: false,
       status: 429,
       statusText: 'Too Many Requests',
-      text: () => Promise.resolve(JSON.stringify({ message: 'Rate limited', error: 'rate_limited' })),
+      text: () =>
+        Promise.resolve(JSON.stringify({ message: 'Rate limited', error: 'rate_limited' })),
     });
     vi.stubGlobal('fetch', fetchMock);
 

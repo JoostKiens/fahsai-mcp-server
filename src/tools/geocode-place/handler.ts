@@ -9,7 +9,9 @@ export interface GeocodePlaceToolDeps {
 
 // `resolved.bbox` is only null when outsideCoverage — callers must check that first and
 // treat it as an error before calling this, so it's never null here.
-export function toGeocodePlaceSummary(resolved: ResolvedPlace & { bbox: NonNullable<ResolvedPlace['bbox']> }): GeocodePlaceSummary {
+export function toGeocodePlaceSummary(
+  resolved: ResolvedPlace & { bbox: NonNullable<ResolvedPlace['bbox']> },
+): GeocodePlaceSummary {
   return {
     matchedName: resolved.matchedName,
     lat: resolved.lat,

@@ -12,7 +12,12 @@ export const STATION_HISTORY_DEFAULT_DAYS = 7;
 
 export const getStationHistoryInputSchema = z.object({
   station_id: z.string().min(1),
-  days: z.number().int().positive().max(STATION_HISTORY_MAX_DAYS).default(STATION_HISTORY_DEFAULT_DAYS),
+  days: z
+    .number()
+    .int()
+    .positive()
+    .max(STATION_HISTORY_MAX_DAYS)
+    .default(STATION_HISTORY_DEFAULT_DAYS),
   date: isoDateSchema.optional(),
 });
 

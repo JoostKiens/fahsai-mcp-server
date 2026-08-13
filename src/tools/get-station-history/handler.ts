@@ -83,9 +83,14 @@ function toStationHistoryDay(raw: StationHistoryDayRaw): StationHistoryDay {
     // T with no runtime check, so a response that omits the key entirely (rather than sending an
     // explicit null) is a real possibility, and `!== null` alone would let `undefined` through to
     // toStationHistoryWeather/toStationHistoryBaseline and throw inside this function's caller (.map).
-    weather: raw.weather !== null && raw.weather !== undefined ? toStationHistoryWeather(raw.weather) : null,
+    weather:
+      raw.weather !== null && raw.weather !== undefined
+        ? toStationHistoryWeather(raw.weather)
+        : null,
     baseline:
-      raw.baseline !== null && raw.baseline !== undefined ? toStationHistoryBaseline(raw.baseline) : null,
+      raw.baseline !== null && raw.baseline !== undefined
+        ? toStationHistoryBaseline(raw.baseline)
+        : null,
   };
 }
 
@@ -103,7 +108,10 @@ export function summarizeStationHistory(
   };
 }
 
-export function emptyStationHistorySummary(stationId: string, daysRequested: number): StationHistorySummary {
+export function emptyStationHistorySummary(
+  stationId: string,
+  daysRequested: number,
+): StationHistorySummary {
   return { stationId, daysRequested, days: [] };
 }
 
