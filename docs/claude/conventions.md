@@ -75,7 +75,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | `scaffolding`    | Project skeleton, transports (STDIO), build/tooling config, env setup                                            |
 | `client`         | FahSai API HTTP client, error typing (`src/shared/fahsai-client/`)                                                |
 | `place-resolver` | Nominatim geocoding, the place→bbox resolver, its in-process cache and throttling (`src/shared/place-resolver/`)  |
-| `cache`          | The generic `Cache<K,V>` TTL cache                                                                                |
+| `cache`          | The `Cache<V>` TTL cache                                                                                          |
 | `shared`         | Cross-tool logic under `src/shared/` not covered by a more specific scope above (`aqi.ts`, `wind.ts`, `bbox.ts`, `shared/fires/`, ...) |
 | `tools`          | Any MCP tool logic (`src/tools/<name>/`) — use a sub-scope like `tools/get_weather` if a commit touches only one tool |
 | `docs`           | README, CLAUDE.md, `docs/claude/*`                                                                               |
