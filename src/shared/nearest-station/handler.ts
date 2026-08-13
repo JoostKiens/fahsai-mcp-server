@@ -18,9 +18,17 @@ export interface NearestStation {
   readonly lng: number;
 }
 
+export type NearestStationInput = { readonly bbox: BoundingBox; readonly date?: string } | { readonly stationId: string };
+
 export type NearestStationError =
   | FahsaiError
-  | { readonly kind: 'no-nearby-station'; readonly message: string };
+  | { readonly kind: 'no-nearby-station' | 'station-not-found'; readonly message: string };
+
+interface StationRaw {
+  readonly id: string;
+  readonly lat: number;
+  readonly lng: number;
+}
 
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -52,10 +60,44 @@ function noNearbyStation(message: string): Result<NearestStation, NearestStation
   return { ok: false, error: { kind: 'no-nearby-station', message } };
 }
 
+function stationNotFound(message: string): Result<NearestStation, NearestStationError> {
+  return { ok: false, error: { kind: 'station-not-found', message } };
+}
+
+export async function findNearestStation(
+  client: FahsaiClient,
+  input: NearestStationInput,
+): Promise<Result<NearestStation, NearestStationError>> {
+  if ('stationId' in input) {
+    return resolveByStationId(client, input.stationId);
+  }
+  return resolveByBbox(client, input.bbox, input.date);
+}
+
+// A directly-known station bypasses distance resolution entirely (JOO-50) — no candidate
+// filtering, no cutoff, just confirm it exists and hand back its coordinates.
+async function resolveByStationId(
+  client: FahsaiClient,
+  stationId: string,
+): Promise<Result<NearestStation, NearestStationError>> {
+  const fetchResult = await client.get<StationRaw>(`/api/stations/${encodeURIComponent(stationId)}`);
+  if (!fetchResult.ok) {
+    if (fetchResult.error.kind === 'not-found') {
+      return stationNotFound(`No station found with id "${stationId}".`);
+    }
+    return fetchResult;
+  }
+
+  return {
+    ok: true,
+    value: { stationId: fetchResult.value.id, lat: fetchResult.value.lat, lng: fetchResult.value.lng },
+  };
+}
+
 // Picks the station closest to `bbox`'s center with a reading for `date` (or the latest
 // available date, if omitted), rejecting anything beyond NEAREST_STATION_CUTOFF_KM. No
 // tie-break for near-equal distances — closest wins.
-export async function findNearestStation(
+async function resolveByBbox(
   client: FahsaiClient,
   bbox: BoundingBox,
   date?: string,
