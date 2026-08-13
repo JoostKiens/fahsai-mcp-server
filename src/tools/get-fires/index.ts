@@ -11,11 +11,7 @@ export function registerGetFires(server: McpServer, deps: FiresToolDeps): void {
     'get_fires',
     {
       title: 'Get active fires',
-      description:
-        'Active fire detections (NASA FIRMS) for a single date, filtered by place name or bounding box. ' +
-        'Use the `confidence` filter (`low`/`nominal`/`high`) to cut FIRMS noise — this is the field for that, not FRP. ' +
-        'Returns a total count, a confidence breakdown, and either the full point list or the top fires by fire ' +
-        `radiative power (FRP) when the result is large. ${CALL_GET_LATEST_DATE_FIRST_NOTE}`,
+      description: `Active fire detections (NASA FIRMS) for a single date, filtered by place name or bounding box. Use the \`confidence\` filter (\`low\`/\`nominal\`/\`high\`) to cut FIRMS noise — this is the field for that, not FRP. Returns a total count, a confidence breakdown, and either the full point list or the top fires by fire radiative power (FRP) when the result is large. ${CALL_GET_LATEST_DATE_FIRST_NOTE}`,
       inputSchema: getFiresInputSchema.shape,
       outputSchema: fireSummaryOutputSchema.shape,
     },

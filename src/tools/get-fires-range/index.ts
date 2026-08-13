@@ -11,11 +11,7 @@ export function registerGetFiresRange(server: McpServer, deps: FiresToolDeps): v
     'get_fires_range',
     {
       title: 'Get active fires over a date range',
-      description:
-        `Active fire detections (NASA FIRMS) across a date range (max ${FIRES_RANGE_MAX_DAYS} days), filtered by ` +
-        'place name or bounding box. Use the `confidence` filter (`low`/`nominal`/`high`) to cut FIRMS noise — this ' +
-        'is the field for that, not FRP. Returns a total count, a confidence breakdown, and either the full point ' +
-        `list or the top fires by fire radiative power (FRP) when the result is large. ${CALL_GET_LATEST_DATE_FIRST_NOTE}`,
+      description: `Active fire detections (NASA FIRMS) across a date range (max ${FIRES_RANGE_MAX_DAYS} days), filtered by place name or bounding box. Use the \`confidence\` filter (\`low\`/\`nominal\`/\`high\`) to cut FIRMS noise — this is the field for that, not FRP. Returns a total count, a confidence breakdown, and either the full point list or the top fires by fire radiative power (FRP) when the result is large. ${CALL_GET_LATEST_DATE_FIRST_NOTE}`,
       inputSchema: getFiresRangeInputSchema.shape,
       outputSchema: fireSummaryOutputSchema.shape,
     },
