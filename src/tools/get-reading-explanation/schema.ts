@@ -7,6 +7,9 @@ import { locationInput } from '../../shared/schema/location.js';
 export const getReadingExplanationInputSchema = z.object({
   ...locationInput.shape,
   date: isoDateSchema.optional(),
+  // Tool-local addition, same pattern as get_station_baseline's station_id param — not part of
+  // locationInput itself, since that shape is shared with every other place/bbox-only tool.
+  station_id: z.string().min(1).optional(),
 });
 
 export type GetReadingExplanationInput = z.infer<typeof getReadingExplanationInputSchema>;

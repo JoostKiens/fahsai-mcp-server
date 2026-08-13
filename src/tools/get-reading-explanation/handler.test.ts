@@ -232,4 +232,47 @@ describe('createGetReadingExplanationHandler', () => {
     expect(resolve).toHaveBeenCalledWith('Chiang Mai', { radiusKm: undefined });
     expect(result.isError).toBeUndefined();
   });
+
+  it('resolves via station_id when given, bypassing place/bbox resolution entirely', async () => {
+    const resolve = vi.fn();
+    const get = pathBasedGet({
+      '/api/stations/known-station': { ok: true, value: { id: 'known-station', lat: 13.36, lng: 100.98 } },
+      '/api/explain/context': { ok: true, value: fakeScientificContext() },
+    });
+    const handler = createGetReadingExplanationHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(resolve),
+    });
+
+    const result = await handler({ station_id: 'known-station', date: DATE });
+
+    expect(get).toHaveBeenCalledWith('/api/stations/known-station');
+    expect(get).toHaveBeenCalledWith('/api/explain/context', {
+      stationId: 'known-station',
+      lat: 13.36,
+      lng: 100.98,
+      date: DATE,
+    });
+    expect(resolve).not.toHaveBeenCalled();
+    expect(result.isError).toBeUndefined();
+  });
+
+  it('returns a note-only response for an unknown station_id, not a hard error or a fallback to place/bbox', async () => {
+    const get = pathBasedGet({
+      '/api/stations/unknown-station': {
+        ok: false,
+        error: { kind: 'not-found', status: 404, message: 'Station not found' },
+      },
+    });
+    const handler = createGetReadingExplanationHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(vi.fn()),
+    });
+
+    const result = await handler({ station_id: 'unknown-station', date: DATE });
+
+    expect(result.isError).toBeUndefined();
+    expect(result.structuredContent).toEqual({ note: 'No station found with id "unknown-station".' });
+    expect(get).toHaveBeenCalledTimes(1);
+  });
 });
