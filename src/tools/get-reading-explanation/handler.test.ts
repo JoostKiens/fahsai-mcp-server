@@ -6,7 +6,12 @@ import {
   STATIONS_BY_DISTANCE,
 } from '../../shared/nearest-station/handler.fixtures.js';
 import { fakePlaceResolver, fakeResolvedPlace } from '../../shared/place-resolver/place-resolver.fixtures.js';
-import { fakeOutlierHighScientificContext, fakeScientificContext } from './handler.fixtures.js';
+import {
+  fakeFireTransportScientificContext,
+  fakeOutlierHighScientificContext,
+  fakeScientificContext,
+  fakeStationBaselineScientificContext,
+} from './handler.fixtures.js';
 import { createGetReadingExplanationHandler } from './handler.js';
 
 // Matches the bbox STATIONS_BY_DISTANCE's fixture distances were computed against — 'near' wins.
@@ -69,6 +74,44 @@ describe('createGetReadingExplanationHandler', () => {
     expect(structured.explainCase).toBe('OUTLIER_HIGH');
     expect(structured.transport).toBeNull();
     expect(structured.outlier).toEqual({ type: 'HIGH', ratio: 5.445463385958721, peerTier: 1 });
+  });
+
+  it('returns the PLAUSIBLE_FIRE_TRANSPORT shape unmodified (transport populated) on the happy path', async () => {
+    const get = pathBasedGet({
+      '/api/station-readings/latest': { ok: true, value: { data: STATIONS_BY_DISTANCE } },
+      '/api/explain/context': { ok: true, value: fakeFireTransportScientificContext() },
+    });
+    const handler = createGetReadingExplanationHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(vi.fn()),
+    });
+
+    const result = await handler({ bbox: CHIANG_MAI_BBOX, date: DATE });
+
+    const structured = result.structuredContent as { explainCase: string; transport: unknown };
+    expect(structured.explainCase).toBe('PLAUSIBLE_FIRE_TRANSPORT');
+    expect(structured.transport).not.toBeNull();
+  });
+
+  it('returns the stationBaseline shape unmodified on the happy path', async () => {
+    const get = pathBasedGet({
+      '/api/station-readings/latest': { ok: true, value: { data: STATIONS_BY_DISTANCE } },
+      '/api/explain/context': { ok: true, value: fakeStationBaselineScientificContext() },
+    });
+    const handler = createGetReadingExplanationHandler({
+      client: fakeClient(get),
+      placeResolver: fakePlaceResolver(vi.fn()),
+    });
+
+    const result = await handler({ bbox: CHIANG_MAI_BBOX, date: DATE });
+
+    const structured = result.structuredContent as { stationBaseline: unknown };
+    expect(structured.stationBaseline).toEqual({
+      category: 'wellAbove',
+      typicalLow: 5,
+      typicalHigh: 9,
+      periodLabel: 'mid-July',
+    });
   });
 
   it('returns a note-only response, no ScientificContext fields, when no station is nearby', async () => {
