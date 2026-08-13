@@ -45,10 +45,14 @@ GET /api/stations/:stationId/baseline
   be n<30 — a common case, not an edge case). Requires station_id.
   → get_station_baseline
 
-GET /api/stations?bbox=...
+GET /api/stations?bbox=...&q=...
   All stations, wrapped as { data: [...] }. See the corrected Station shape below — VERIFIED
   2026-07-26 (JOO-33); this section previously claimed a bare array and isMobile/isMonitor/
   parameters fields that don't exist on any live station.
+  `q` (optional) filters by station name: case-insensitive substring match (`ilike`), trimmed,
+  `%`/`_` wildcard-escaped, AND-composed with `bbox` — VERIFIED against backend source
+  2026-08-13 (JOO-51/JOO-52, packages/backend/src/routes/stations.ts). Unlike `id`/`stationId`
+  below, `q` is a real, live-filtered param, not a no-op.
   → get_stations
 
 GET /api/stations/:id
@@ -189,6 +193,9 @@ interface StationReadingHistory {
 // route — both return the same full unfiltered list, filtering by id here doesn't work. A real
 // single-station lookup was added afterward at GET /api/stations/:id (see above, JOO-50
 // follow-up, verified live 2026-08-13) — use that instead of scanning this route's full list.
+// VERIFIED against backend source 2026-08-13 (JOO-51/JOO-52): `q` (optional), unlike `id`/
+// `stationId` above, DOES filter server-side — case-insensitive substring match on `name`
+// (`ilike`), trimmed, `%`/`_` escaped, AND-composed with `bbox`.
 interface StationsApiResponse {
   data: Station[];
 }

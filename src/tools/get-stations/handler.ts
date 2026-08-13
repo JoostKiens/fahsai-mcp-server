@@ -3,7 +3,12 @@ import type { FahsaiClient } from '../../shared/fahsai-client/client.js';
 import type { PlaceResolver } from '../../shared/place-resolver/index.js';
 import { resolveLocationInput } from '../../shared/resolve-location.js';
 import { buildToolError, buildToolResponse } from '../../shared/tool-response.js';
-import type { GetStationsInput, StationRaw, StationsSummary, StationsToolResult } from './schema.js';
+import type {
+  GetStationsInput,
+  StationRaw,
+  StationsSummary,
+  StationsToolResult,
+} from './schema.js';
 
 export interface StationsToolDeps {
   readonly client: FahsaiClient;
@@ -30,6 +35,7 @@ export function createGetStationsHandler(deps: StationsToolDeps) {
     const { bbox, note: locationNote } = locationResult.value;
     const fetchResult = await deps.client.get<StationsApiResponse>('/api/stations', {
       bbox: formatBboxParam(bbox),
+      q: input.name,
     });
 
     if (!fetchResult.ok) {
