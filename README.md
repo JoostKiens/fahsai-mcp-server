@@ -48,7 +48,7 @@ or point directly at a local build without linking:
 }
 ```
 
-Restart Claude Desktop after editing the config. All 13 tools (fires, PM2.5 stations, CAMS model estimates, weather, power plants, geocoding) should appear in its tool list.
+Restart Claude Desktop after editing the config. All 14 tools (fires, PM2.5 stations, CAMS model estimates, weather, power plants, geocoding, reading explanations) should appear in its tool list.
 
 ## Example prompts
 
@@ -59,6 +59,7 @@ Fahsai ingests data on a daily schedule and has no live "today" — "yesterday" 
 - **Weather:** "What was the wind direction and speed over Bangkok yesterday?"
 - **Power plants:** "How many coal power plants are within 50 km of Mae Moh?"
 - **Place-name resolution:** "Where exactly is the Golden Triangle in Thailand, and which countries meet there?"
+- **Reading explanation:** "Why is the PM2.5 reading near Chiang Rai so high today?"
 
 ## Architecture
 
