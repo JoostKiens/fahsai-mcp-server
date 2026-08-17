@@ -6,6 +6,9 @@
   "bin": {
     "fahsai-mcp-server": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=18"
   },
