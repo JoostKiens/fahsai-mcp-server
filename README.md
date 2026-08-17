@@ -6,7 +6,7 @@ See [`CLAUDE.md`](CLAUDE.md) and [`docs/claude/`](docs/claude/) for architecture
 
 ## Usage with Claude Desktop
 
-Install and run via `npx` — no separate install step needed. Add an entry to your `claude_desktop_config.json`'s `mcpServers`:
+Add this to your `claude_desktop_config.json`'s `mcpServers` — Claude Desktop runs `npx fahsai-mcp-server` for you, no separate install step:
 
 ```json
 {
