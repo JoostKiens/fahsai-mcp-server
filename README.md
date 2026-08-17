@@ -6,7 +6,7 @@ See [`CLAUDE.md`](CLAUDE.md) and [`docs/claude/`](docs/claude/) for architecture
 
 ## Usage with Claude Desktop
 
-Once published, install and run via `npx` — no separate install step needed. Add an entry to your `claude_desktop_config.json`'s `mcpServers`:
+Install and run via `npx` — no separate install step needed. Add an entry to your `claude_desktop_config.json`'s `mcpServers`:
 
 ```json
 {
@@ -19,9 +19,7 @@ Once published, install and run via `npx` — no separate install step needed. A
 }
 ```
 
-> **Not yet published to npm.** Until then, use one of the options below instead.
-
-### Before publishing (works today)
+### Local development (without npx)
 
 Either `npm link` the package so it resolves on your `PATH`:
 
