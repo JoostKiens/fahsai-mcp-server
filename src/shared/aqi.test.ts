@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { classifyAqi, classifyAqiOrNull } from './aqi.js';
 
 describe('classifyAqi', () => {
-  it('classifies Good (0–12.0)', () => {
+  it('classifies Good (0–9.0)', () => {
     expect(classifyAqi(0).category).toBe('Good');
-    expect(classifyAqi(6).category).toBe('Good');
-    expect(classifyAqi(12.0).category).toBe('Good');
+    expect(classifyAqi(4.5).category).toBe('Good');
+    expect(classifyAqi(9.0).category).toBe('Good');
   });
 
-  it('classifies Moderate (12.1–35.4)', () => {
-    expect(classifyAqi(12.1).category).toBe('Moderate');
+  it('classifies Moderate (9.1–35.4)', () => {
+    expect(classifyAqi(9.1).category).toBe('Moderate');
     expect(classifyAqi(24).category).toBe('Moderate');
     expect(classifyAqi(35.4).category).toBe('Moderate');
   });
@@ -21,20 +21,20 @@ describe('classifyAqi', () => {
     expect(classifyAqi(55.4).category).toBe('Unhealthy for Sensitive Groups');
   });
 
-  it('classifies Unhealthy (55.5–150.4)', () => {
+  it('classifies Unhealthy (55.5–125.4)', () => {
     expect(classifyAqi(55.5).category).toBe('Unhealthy');
     expect(classifyAqi(100).category).toBe('Unhealthy');
-    expect(classifyAqi(150.4).category).toBe('Unhealthy');
+    expect(classifyAqi(125.4).category).toBe('Unhealthy');
   });
 
-  it('classifies Very Unhealthy (150.5–250.4)', () => {
-    expect(classifyAqi(150.5).category).toBe('Very Unhealthy');
+  it('classifies Very Unhealthy (125.5–225.4)', () => {
+    expect(classifyAqi(125.5).category).toBe('Very Unhealthy');
     expect(classifyAqi(200).category).toBe('Very Unhealthy');
-    expect(classifyAqi(250.4).category).toBe('Very Unhealthy');
+    expect(classifyAqi(225.4).category).toBe('Very Unhealthy');
   });
 
-  it('classifies Hazardous (250.5+)', () => {
-    expect(classifyAqi(250.5).category).toBe('Hazardous');
+  it('classifies Hazardous (225.5+)', () => {
+    expect(classifyAqi(225.5).category).toBe('Hazardous');
     expect(classifyAqi(500).category).toBe('Hazardous');
   });
 

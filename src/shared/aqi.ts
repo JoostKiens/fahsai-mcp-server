@@ -1,9 +1,10 @@
+// US EPA PM2.5 breakpoints, 2024 revision (effective 6 Feb 2024).
 const BREAKPOINTS = [
-  { max: 12.0, category: 'Good' },
+  { max: 9.0, category: 'Good' },
   { max: 35.4, category: 'Moderate' },
   { max: 55.4, category: 'Unhealthy for Sensitive Groups' },
-  { max: 150.4, category: 'Unhealthy' },
-  { max: 250.4, category: 'Very Unhealthy' },
+  { max: 125.4, category: 'Unhealthy' },
+  { max: 225.4, category: 'Very Unhealthy' },
 ] as const;
 
 export type AqiCategory = (typeof BREAKPOINTS)[number]['category'] | 'Hazardous';
