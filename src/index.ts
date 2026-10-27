@@ -18,8 +18,9 @@ import { registerGetStationReadings } from './tools/get-station-readings/index.j
 import { registerGetStationReadingsHistory } from './tools/get-station-readings-history/index.js';
 import { registerGetStations } from './tools/get-stations/index.js';
 import { registerGetWeather } from './tools/get-weather/index.js';
+import { VERSION } from './version.js';
 
-const server = new McpServer({ name: 'fahsai-mcp-server', version: '0.1.0' });
+const server = new McpServer({ name: 'fahsai-mcp-server', version: VERSION });
 
 const deps = { client: createFahsaiClient(), placeResolver: createPlaceResolver() };
 

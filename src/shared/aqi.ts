@@ -19,7 +19,8 @@ export function classifyAqi(pm25: number): AqiResult {
     throw new RangeError(`classifyAqi: invalid pm25 value: ${pm25}`);
   }
   // EPA truncates to one decimal before lookup, so e.g. 9.05 is Good, not in a gap above 9.0.
-  const truncated = Math.trunc(pm25 * 10) / 10;
+  // The epsilon keeps a computed mean like 9.099999999999999 (three 9.1s) from dropping to 9.0.
+  const truncated = Math.floor(pm25 * 10 + 1e-9) / 10;
   for (const { max, category } of BREAKPOINTS) {
     if (truncated <= max) return { category, pm25 };
   }

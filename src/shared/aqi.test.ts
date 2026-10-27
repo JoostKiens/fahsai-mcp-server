@@ -43,6 +43,21 @@ describe('classifyAqi', () => {
     expect(classifyAqi(35.49).category).toBe('Moderate');
   });
 
+  it('keeps a computed value that lands just below a lower edge in the higher band', () => {
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const tenCellsAt9_1 = mean(Array(10).fill(9.1));
+    expect(tenCellsAt9_1).toBeLessThan(9.1);
+    expect(classifyAqi(tenCellsAt9_1).category).toBe('Moderate');
+    for (const [edge, category] of [
+      [35.5, 'Unhealthy for Sensitive Groups'],
+      [55.5, 'Unhealthy'],
+      [125.5, 'Very Unhealthy'],
+      [225.5, 'Hazardous'],
+    ] as const) {
+      expect(classifyAqi(edge - 1e-12).category).toBe(category);
+    }
+  });
+
   it('classifies values that moved band under the 2024 scale', () => {
     expect(classifyAqi(12.0).category).toBe('Moderate');
     expect(classifyAqi(150.4).category).toBe('Very Unhealthy');
