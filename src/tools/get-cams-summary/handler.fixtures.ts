@@ -1,7 +1,7 @@
 import type { CamsSummaryDayRaw } from './handler.js';
 
 // REAL live response, verbatim (start=2026-07-01, end=2026-07-10, verified 2026-07-27, JOO-35).
-// Every value falls in the Moderate AQI band (12.1-35.4).
+// Every value falls in the Moderate AQI band (9.1-35.4).
 export const TEN_DAY_CAMS_SUMMARY: readonly CamsSummaryDayRaw[] = [
   { date: '2026-07-01', pm25: 19.4 },
   { date: '2026-07-02', pm25: 18 },

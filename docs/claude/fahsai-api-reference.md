@@ -375,16 +375,16 @@ interface LatestDateApiResponse {
 
 ## AQI thresholds (US EPA, from `fahsai`'s `docs/claude/frontend.md`)
 
-Raw PM2.5 µg/m³, not AQI index values. This is what `shared/aqi.ts` implements — don't reference this table directly in tool code, go through the shared module.
+Raw PM2.5 µg/m³, not AQI index values. **Updated 2026-10-27 to the 2024 EPA revision** (effective 6 Feb 2024); the upstream doc listed the 2012 cutoffs (Good ≤12.0, Unhealthy ≤150.4, Very unhealthy ≤250.4). Values are truncated to one decimal before lookup. This is what `shared/aqi.ts` implements — don't reference this table directly in tool code, go through the shared module.
 
 | Category                     | PM2.5 µg/m³ |
 | ---------------------------- | ----------- |
-| Good                         | 0–12.0      |
-| Moderate                     | 12.1–35.4   |
+| Good                         | 0–9.0       |
+| Moderate                     | 9.1–35.4    |
 | Unhealthy (sensitive groups) | 35.5–55.4   |
-| Unhealthy                    | 55.5–150.4  |
-| Very unhealthy               | 150.5–250.4 |
-| Hazardous                    | 250.5+      |
+| Unhealthy                    | 55.5–125.4  |
+| Very unhealthy               | 125.5–225.4 |
+| Hazardous                    | 225.5+      |
 
 ## Wind direction convention (from `fahsai`'s `docs/claude/conventions.md`)
 

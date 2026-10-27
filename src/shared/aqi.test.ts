@@ -38,8 +38,20 @@ describe('classifyAqi', () => {
     expect(classifyAqi(500).category).toBe('Hazardous');
   });
 
+  it('truncates to one decimal before lookup, as EPA does', () => {
+    expect(classifyAqi(9.05).category).toBe('Good');
+    expect(classifyAqi(35.49).category).toBe('Moderate');
+  });
+
+  it('classifies values that moved band under the 2024 scale', () => {
+    expect(classifyAqi(12.0).category).toBe('Moderate');
+    expect(classifyAqi(150.4).category).toBe('Very Unhealthy');
+    expect(classifyAqi(250.4).category).toBe('Hazardous');
+  });
+
   it('passes pm25 through unchanged', () => {
     expect(classifyAqi(37.8).pm25).toBe(37.8);
+    expect(classifyAqi(9.05).pm25).toBe(9.05);
   });
 
   it('throws RangeError for NaN', () => {
