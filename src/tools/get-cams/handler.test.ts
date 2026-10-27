@@ -25,7 +25,7 @@ describe('computeAreaSummary', () => {
 
     expect(summary.pointCount).toBe(9);
     expect(summary.mean.pm25).toBeCloseTo(9.2778, 3);
-    expect(summary.mean.aqiCategory).toBe('Good');
+    expect(summary.mean.aqiCategory).toBe('Moderate');
     expect(summary.median).toEqual({ pm25: 9, aqiCategory: 'Good' });
     expect(summary.p95).toEqual({ pm25: 17.7, aqiCategory: 'Moderate' });
   });
@@ -45,7 +45,7 @@ describe('computeAreaSummary', () => {
 
     expect(summary.pointCount).toBe(2); // the null cell is excluded, not counted
     expect(summary.mean).toEqual({ pm25: 15, aqiCategory: 'Moderate' }); // mean of 10, 20 — not (10+0+20)/3
-    expect(summary.median).toEqual({ pm25: 10, aqiCategory: 'Good' });
+    expect(summary.median).toEqual({ pm25: 10, aqiCategory: 'Moderate' });
     expect(summary.p95).toEqual({ pm25: 20, aqiCategory: 'Moderate' });
   });
 });

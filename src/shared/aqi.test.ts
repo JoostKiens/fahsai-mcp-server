@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { classifyAqi, classifyAqiOrNull } from './aqi.js';
 
 describe('classifyAqi', () => {
-  it('classifies Good (0–12.0)', () => {
+  it('classifies Good (0–9.0)', () => {
     expect(classifyAqi(0).category).toBe('Good');
-    expect(classifyAqi(6).category).toBe('Good');
-    expect(classifyAqi(12.0).category).toBe('Good');
+    expect(classifyAqi(4.5).category).toBe('Good');
+    expect(classifyAqi(9.0).category).toBe('Good');
   });
 
-  it('classifies Moderate (12.1–35.4)', () => {
-    expect(classifyAqi(12.1).category).toBe('Moderate');
+  it('classifies Moderate (9.1–35.4)', () => {
+    expect(classifyAqi(9.1).category).toBe('Moderate');
     expect(classifyAqi(24).category).toBe('Moderate');
     expect(classifyAqi(35.4).category).toBe('Moderate');
   });
@@ -21,25 +21,52 @@ describe('classifyAqi', () => {
     expect(classifyAqi(55.4).category).toBe('Unhealthy for Sensitive Groups');
   });
 
-  it('classifies Unhealthy (55.5–150.4)', () => {
+  it('classifies Unhealthy (55.5–125.4)', () => {
     expect(classifyAqi(55.5).category).toBe('Unhealthy');
     expect(classifyAqi(100).category).toBe('Unhealthy');
-    expect(classifyAqi(150.4).category).toBe('Unhealthy');
+    expect(classifyAqi(125.4).category).toBe('Unhealthy');
   });
 
-  it('classifies Very Unhealthy (150.5–250.4)', () => {
-    expect(classifyAqi(150.5).category).toBe('Very Unhealthy');
+  it('classifies Very Unhealthy (125.5–225.4)', () => {
+    expect(classifyAqi(125.5).category).toBe('Very Unhealthy');
     expect(classifyAqi(200).category).toBe('Very Unhealthy');
-    expect(classifyAqi(250.4).category).toBe('Very Unhealthy');
+    expect(classifyAqi(225.4).category).toBe('Very Unhealthy');
   });
 
-  it('classifies Hazardous (250.5+)', () => {
-    expect(classifyAqi(250.5).category).toBe('Hazardous');
+  it('classifies Hazardous (225.5+)', () => {
+    expect(classifyAqi(225.5).category).toBe('Hazardous');
     expect(classifyAqi(500).category).toBe('Hazardous');
+  });
+
+  it('truncates to one decimal before lookup, as EPA does', () => {
+    expect(classifyAqi(9.05).category).toBe('Good');
+    expect(classifyAqi(35.49).category).toBe('Moderate');
+  });
+
+  it('keeps a computed value that lands just below a lower edge in the higher band', () => {
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const tenCellsAt9_1 = mean(Array(10).fill(9.1));
+    expect(tenCellsAt9_1).toBeLessThan(9.1);
+    expect(classifyAqi(tenCellsAt9_1).category).toBe('Moderate');
+    for (const [edge, category] of [
+      [35.5, 'Unhealthy for Sensitive Groups'],
+      [55.5, 'Unhealthy'],
+      [125.5, 'Very Unhealthy'],
+      [225.5, 'Hazardous'],
+    ] as const) {
+      expect(classifyAqi(edge - 1e-12).category).toBe(category);
+    }
+  });
+
+  it('classifies values that moved band under the 2024 scale', () => {
+    expect(classifyAqi(12.0).category).toBe('Moderate');
+    expect(classifyAqi(150.4).category).toBe('Very Unhealthy');
+    expect(classifyAqi(250.4).category).toBe('Hazardous');
   });
 
   it('passes pm25 through unchanged', () => {
     expect(classifyAqi(37.8).pm25).toBe(37.8);
+    expect(classifyAqi(9.05).pm25).toBe(9.05);
   });
 
   it('throws RangeError for NaN', () => {

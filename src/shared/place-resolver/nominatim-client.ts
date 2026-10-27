@@ -1,3 +1,4 @@
+import { VERSION } from '../../version.js';
 import type { Result } from '../result.js';
 
 export interface NominatimMatch {
@@ -18,7 +19,7 @@ const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
 const REQUEST_TIMEOUT_MS = 30_000;
 const MIN_REQUEST_INTERVAL_MS = 1000; // Nominatim usage policy: max 1 request/sec.
 const SEARCH_LIMIT = 5;
-const USER_AGENT = 'fahsai-mcp-server/0.1.0 (+https://github.com/JoostKiens/fahsai-mcp-server)';
+const USER_AGENT = `fahsai-mcp-server/${VERSION} (+https://github.com/JoostKiens/fahsai-mcp-server)`;
 
 export function createNominatimClient(): NominatimClient {
   let nextAvailableAt = 0;

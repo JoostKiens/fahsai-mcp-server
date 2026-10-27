@@ -2,7 +2,7 @@ import type { CamsGridRaw } from './handler.js';
 
 // Small-area grid — REAL live response, verbatim (bbox=100,13,101,14, date=2026-07-26,
 // verified 2026-07-27, JOO-35). Used to hand-verify computeAreaSummary's mean/median/p95
-// against known values: mean≈9.278 (Good), median=9 (Good), p95=17.7 (Moderate).
+// against known values: mean≈9.278 (Moderate), median=9 (Good), p95=17.7 (Moderate).
 export const SMALL_AREA_CAMS_GRID: CamsGridRaw = {
   lats: [13, 13, 13, 13.400002, 13.400002, 13.400002, 13.800003, 13.800003, 13.800003],
   lngs: [100.20001, 100.600006, 101, 100.20001, 100.600006, 101, 100.20001, 100.600006, 101],
